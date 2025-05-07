@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'home_page.dart'; // To access the Product class
 import 'constants.dart';
+import 'product_details_page.dart';
+import 'models/product.dart';
 
 class SearchResultsPage extends StatefulWidget {
   final String searchQuery;
@@ -359,7 +360,12 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                             ),
                           ),
                           onTap: () {
-                            // Navigate to product detail page
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailsPage(product: product),
+                              ),
+                            );
                           },
                         ),
                       );
