@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
+import 'search_results_page.dart';
 
 // Sample data models
 class Product {
@@ -59,6 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
     Category(name: 'Toys', icon: Icons.toys),
     Category(name: 'Home', icon: Icons.home),
     Category(name: 'Vehicles', icon: Icons.directions_car),
+    Category(name: 'Others', icon: Icons.more_horiz),
   ];
   
   // Sample products
@@ -150,27 +152,37 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
         foregroundColor: AppColors.coolGray,
-        title: Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.deepSlateGray,
-              border: Border.all(color: AppColors.mutedTeal),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search for items...',
-                hintStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
-                prefixIcon: Icon(Icons.search, color: AppColors.coolGray),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.filter_list, color: AppColors.coolGray),
-                  onPressed: () {},
-                ),
+        title: Container(
+          decoration: BoxDecoration(
+            color: AppColors.deepSlateGray,
+            border: Border.all(color: AppColors.mutedTeal),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: TextField(
+            controller: _searchController,
+            style: TextStyle(color: Colors.white, fontSize: 16),
+            cursorColor: AppColors.mutedTeal,
+            decoration: InputDecoration(
+              hintText: 'Search for items...',
+              hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
+              prefixIcon: Icon(Icons.search, color: AppColors.coolGray),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              suffixIcon: IconButton(
+                icon: Icon(Icons.filter_list, color: AppColors.coolGray),
+                onPressed: () {},
               ),
             ),
+            onSubmitted: (value) {
+              if (value.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SearchResultsPage(searchQuery: value),
+                  ),
+                );
+              }
+            },
           ),
         ),
         actions: [
@@ -216,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             height: 60,
                             decoration: BoxDecoration(
                               color: AppColors.deepSlateGray,
-                              border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
+                              border: Border.all(color: AppColors.mutedTeal.withAlpha(77)),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(
@@ -274,10 +286,10 @@ class _MyHomePageState extends State<MyHomePage> {
                       decoration: BoxDecoration(
                         color: AppColors.deepSlateGray,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.mutedTeal.withAlpha(77)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withAlpha(77),
                             spreadRadius: 1,
                             blurRadius: 5,
                             offset: const Offset(0, 3),
@@ -337,7 +349,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                       product.condition,
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: AppColors.coolGray.withOpacity(0.7),
+                                        color: AppColors.coolGray.withAlpha(179),
                                       ),
                                     ),
                                   ],
@@ -387,10 +399,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     decoration: BoxDecoration(
                       color: AppColors.deepSlateGray,
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.mutedTeal.withAlpha(77)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withAlpha(77),
                           spreadRadius: 1,
                           blurRadius: 5,
                           offset: const Offset(0, 3),
@@ -431,7 +443,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   product.description,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.coolGray.withOpacity(0.7),
+                                    color: AppColors.coolGray.withAlpha(179),
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -450,13 +462,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                     ),
                                     Row(
                                       children: [
-                                        Icon(Icons.access_time, size: 14, color: AppColors.coolGray.withOpacity(0.7)),
+                                        Icon(Icons.access_time, size: 14, color: AppColors.coolGray.withAlpha(179)),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${DateTime.now().difference(product.listedDate).inDays}d ago',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: AppColors.coolGray.withOpacity(0.7),
+                                            color: AppColors.coolGray.withAlpha(179),
                                           ),
                                         ),
                                       ],
