@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
+import 'report_item_page.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -137,8 +138,16 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.flag_outlined),
-            onPressed: () {},
+            icon: const Icon(Icons.flag_outlined, color: AppColors.coolGray),
+            onPressed: () {
+              // Navigate to report item page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReportItemPage(product: widget.product),
+                ),
+              );
+            },
           ),
         ],
       ),
