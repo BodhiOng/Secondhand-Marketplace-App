@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'search_results_page.dart';
 import 'product_details_page.dart';
+import 'checkout_page.dart';
 import 'models/product.dart';
+import 'models/cart_item.dart';
 
 // Homepage for the secondhand marketplace app
 class MyHomePage extends StatefulWidget {
@@ -169,7 +171,21 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.coolGray),
             onPressed: () {
-              // Navigate to cart
+              // Create sample cart items from the first few products
+              final sampleCartItems = [
+                CartItem(product: _products[0], quantity: 1),
+                CartItem(product: _products[1], quantity: 2),
+              ];
+              
+              // Navigate to checkout page
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CheckoutPage(
+                    cartItems: sampleCartItems,
+                  ),
+                ),
+              );
             },
           ),
           IconButton(

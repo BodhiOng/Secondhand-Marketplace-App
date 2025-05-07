@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
+import 'models/cart_item.dart';
 import 'report_item_page.dart';
+import 'checkout_page.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -108,7 +110,24 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   void _submitBargain() {
-    // Here you would typically send the bargain request to the backend
+    // Create a modified product with the bargained price
+    final bargainedProduct = Product(
+      id: widget.product.id,
+      name: widget.product.name,
+      description: widget.product.description,
+      price: _bargainPrice, // Use the bargained price
+      imageUrl: widget.product.imageUrl,
+      category: widget.product.category,
+      seller: widget.product.seller,
+      rating: widget.product.rating,
+      condition: widget.product.condition,
+      listedDate: widget.product.listedDate,
+    );
+    
+    // Create a cart item with the bargained product
+    final cartItem = CartItem(product: bargainedProduct);
+    
+    // Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -118,7 +137,17 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
         backgroundColor: AppColors.mutedTeal,
       ),
     );
+    
+    // Hide the bottom sheet
     _hideBargainBottomSheet();
+    
+    // Navigate to checkout page with the bargained item
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutPage(cartItems: [cartItem]),
+      ),
+    );
   }
 
   @override
@@ -135,7 +164,15 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () {},
+            onPressed: () {
+              // Navigate to checkout page with empty cart
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CheckoutPage(cartItems: []),
+                ),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.flag_outlined, color: AppColors.coolGray),
@@ -373,7 +410,34 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Create a cart item with the current product
+                        final cartItem = CartItem(product: widget.product);
+                        
+                        // Show confirmation
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${widget.product.name} added to cart',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: AppColors.mutedTeal,
+                            action: SnackBarAction(
+                              label: 'VIEW CART',
+                              textColor: Colors.white,
+                              onPressed: () {
+                                // Navigate to checkout page with the item
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CheckoutPage(cartItems: [cartItem]),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.deepSlateGray,
                         foregroundColor: AppColors.coolGray,
@@ -389,7 +453,18 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Create a cart item with the current product
+                        final cartItem = CartItem(product: widget.product);
+                        
+                        // Navigate to checkout page with the item
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CheckoutPage(cartItems: [cartItem]),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.mutedTeal,
                         foregroundColor: Colors.white,
@@ -469,8 +544,9 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _bargainController,
-                      keyboardType: TextInputType.number,
-                      style: TextStyle(color: Colors.white),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: Colors.white),
+                      autofocus: true,
                       decoration: InputDecoration(
                         prefixText: '\$ ',
                         prefixStyle: TextStyle(color: AppColors.mutedTeal),
