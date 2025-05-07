@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
+import 'constants.dart';
 
 // Sample data models
 class Product {
@@ -146,15 +146,40 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.charcoalBlack,
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: AppColors.deepSlateGray,
+        foregroundColor: AppColors.coolGray,
+        title: Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.deepSlateGray,
+              border: Border.all(color: AppColors.mutedTeal),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search for items...',
+                hintStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
+                prefixIcon: Icon(Icons.search, color: AppColors.coolGray),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.filter_list, color: AppColors.coolGray),
+                  onPressed: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
+            icon: Icon(Icons.shopping_cart_outlined, color: AppColors.coolGray),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.favorite_border),
+            icon: Icon(Icons.message_outlined, color: AppColors.coolGray),
             onPressed: () {},
           ),
         ],
@@ -165,35 +190,14 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search for items...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () {},
-                    ),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
               
               // Categories
-              const Text(
+              Text(
                 'Categories',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.coolGray,
                 ),
               ),
               const SizedBox(height: 10),
@@ -211,19 +215,20 @@ class _MyHomePageState extends State<MyHomePage> {
                             width: 60,
                             height: 60,
                             decoration: BoxDecoration(
-                              color: Color((math.Random().nextDouble() * 0xFFFFFF).toInt()).withOpacity(0.2),
+                              color: AppColors.deepSlateGray,
+                              border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Icon(
                               _categories[index].icon,
                               size: 30,
-                              color: Colors.teal,
+                              color: AppColors.mutedTeal,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             _categories[index].name,
-                            style: const TextStyle(fontSize: 12),
+                            style: TextStyle(fontSize: 12, color: AppColors.coolGray),
                           ),
                         ],
                       ),
@@ -238,15 +243,19 @@ class _MyHomePageState extends State<MyHomePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Featured Items',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.coolGray,
                     ),
                   ),
                   TextButton(
                     onPressed: () {},
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.softLemonYellow,
+                    ),
                     child: const Text('See All'),
                   ),
                 ],
@@ -263,11 +272,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       width: 180,
                       margin: const EdgeInsets.only(right: 15),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.deepSlateGray,
                         borderRadius: BorderRadius.circular(15),
+                        border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.2),
+                            color: Colors.black.withOpacity(0.3),
                             spreadRadius: 1,
                             blurRadius: 5,
                             offset: const Offset(0, 3),
@@ -297,9 +307,10 @@ class _MyHomePageState extends State<MyHomePage> {
                               children: [
                                 Text(
                                   product.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
+                                    color: AppColors.coolGray,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -307,8 +318,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                 const SizedBox(height: 5),
                                 Text(
                                   '\$${product.price.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    color: Colors.teal,
+                                  style: TextStyle(
+                                    color: AppColors.mutedTeal,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
@@ -316,17 +327,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                 const SizedBox(height: 5),
                                 Row(
                                   children: [
-                                    const Icon(Icons.star, color: Colors.amber, size: 16),
+                                    Icon(Icons.star, color: AppColors.softLemonYellow, size: 16),
                                     Text(
                                       ' ${product.rating}',
-                                      style: const TextStyle(fontSize: 12),
+                                      style: TextStyle(fontSize: 12, color: AppColors.coolGray),
                                     ),
                                     const Spacer(),
                                     Text(
                                       product.condition,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey,
+                                        color: AppColors.coolGray.withOpacity(0.7),
                                       ),
                                     ),
                                   ],
@@ -347,15 +358,19 @@ class _MyHomePageState extends State<MyHomePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Recently Added',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.coolGray,
                     ),
                   ),
                   TextButton(
                     onPressed: () {},
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.softLemonYellow,
+                    ),
                     child: const Text('See All'),
                   ),
                 ],
@@ -370,11 +385,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 15),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.deepSlateGray,
                       borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: AppColors.mutedTeal.withOpacity(0.3)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
+                          color: Colors.black.withOpacity(0.3),
                           spreadRadius: 1,
                           blurRadius: 5,
                           offset: const Offset(0, 3),
@@ -404,17 +420,18 @@ class _MyHomePageState extends State<MyHomePage> {
                               children: [
                                 Text(
                                   product.name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
+                                    color: AppColors.coolGray,
                                   ),
                                 ),
                                 const SizedBox(height: 5),
                                 Text(
                                   product.description,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey,
+                                    color: AppColors.coolGray.withOpacity(0.7),
                                   ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -425,21 +442,21 @@ class _MyHomePageState extends State<MyHomePage> {
                                   children: [
                                     Text(
                                       '\$${product.price.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        color: Colors.teal,
+                                      style: TextStyle(
+                                        color: AppColors.mutedTeal,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
                                       ),
                                     ),
                                     Row(
                                       children: [
-                                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                                        Icon(Icons.access_time, size: 14, color: AppColors.coolGray.withOpacity(0.7)),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${DateTime.now().difference(product.listedDate).inDays}d ago',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey,
+                                            color: AppColors.coolGray.withOpacity(0.7),
                                           ),
                                         ),
                                       ],
@@ -466,16 +483,12 @@ class _MyHomePageState extends State<MyHomePage> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Explore',
+            icon: Icon(Icons.shopping_bag_outlined),
+            label: 'My Purchases',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Sell',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Messages',
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            label: 'Wallet',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -483,8 +496,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
         showUnselectedLabels: true,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_page.dart';
+import 'constants.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -61,7 +62,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.charcoalBlack,
       body: Center(
         child: SlideTransition(
           position: _slideAnimation,
@@ -83,7 +84,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: AppColors.mutedTeal,
                   ),
                 ),
               ],
