@@ -3,6 +3,7 @@ import 'constants.dart';
 import 'search_results_page.dart';
 import 'product_details_page.dart';
 import 'checkout_page.dart';
+import 'my_purchases_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 
@@ -110,10 +111,24 @@ class _MyHomePageState extends State<MyHomePage> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Handle navigation based on selected index
+    // Only update the index if we're staying on this page
+    if (index == 0) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    } else if (index == 1) {
+      // Navigate to My Purchases page
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MyPurchasesPage()),
+      );
+    } else {
+      // For other tabs, just update the index for now
+      // In a complete app, you would navigate to the respective pages
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
