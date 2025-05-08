@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'home_page.dart';
+import 'my_purchases_page.dart';
+import 'utils/page_transitions.dart';
 
 class MyWalletPage extends StatefulWidget {
   const MyWalletPage({super.key});
@@ -78,7 +80,10 @@ class _MyWalletPageState extends State<MyWalletPage> {
       );
     } else if (index == 1) {
       // Navigate to My Purchases page
-      Navigator.pushReplacementNamed(context, '/purchases');
+      Navigator.pushReplacement(
+        context,
+        DarkPageReplaceRoute(page: const MyPurchasesPage()),
+      );
     } else if (index == 2) {
       // Already on Wallet page, just update index
       setState(() {
