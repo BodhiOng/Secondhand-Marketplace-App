@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:secondhand_marketplace_app/constants.dart';
 import 'landing_page.dart';
 
 void main() {
@@ -22,9 +23,19 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
         appBarTheme: const AppBarTheme(
           elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
+          backgroundColor: AppColors.charcoalBlack,
+          foregroundColor: AppColors.coolGray,
           centerTitle: true,
+        ),
+        scaffoldBackgroundColor: AppColors.charcoalBlack,
+        pageTransitionsTheme: PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+          },
         ),
       ),
       home: const LandingPage(), // Will navigate to MyHomePage after animation

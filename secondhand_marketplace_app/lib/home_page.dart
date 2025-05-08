@@ -7,6 +7,7 @@ import 'my_purchases_page.dart';
 import 'my_wallet_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
+import 'utils/page_transitions.dart';
 
 // Homepage for the secondhand marketplace app
 class MyHomePage extends StatefulWidget {
@@ -121,13 +122,13 @@ class _MyHomePageState extends State<MyHomePage> {
       // Navigate to My Purchases page
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const MyPurchasesPage()),
+        DarkPageRoute(page: const MyPurchasesPage()),
       );
     } else if (index == 2) {
       // Navigate to My Wallet page
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const MyWalletPage()),
+        DarkPageRoute(page: const MyWalletPage()),
       );
     } else {
       // For other tabs, just update the index for now

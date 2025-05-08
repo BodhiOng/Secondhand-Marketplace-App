@@ -3,6 +3,7 @@ import 'constants.dart';
 import 'home_page.dart';
 import 'models/purchase_order.dart';
 import 'models/product.dart';
+import 'utils/page_transitions.dart';
 
 class MyPurchasesPage extends StatefulWidget {
   const MyPurchasesPage({super.key});
@@ -101,7 +102,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       // Navigate directly to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const MyHomePage(title: 'Secondhand Marketplace')),
+        DarkPageReplaceRoute(page: const MyHomePage(title: 'Secondhand Marketplace')),
       );
     } else if (index == 1) {
       // Already on My Purchases page, just update index

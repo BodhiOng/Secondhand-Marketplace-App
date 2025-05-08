@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'my_purchases_page.dart';
+import 'utils/page_transitions.dart';
 
 class OrderConfirmationPage extends StatelessWidget {
   const OrderConfirmationPage({super.key});
@@ -76,7 +77,7 @@ class OrderConfirmationPage extends StatelessWidget {
                 // Navigate to My Purchases page
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyPurchasesPage()),
+                  DarkPageReplaceRoute(page: const MyPurchasesPage()),
                 );
               },
               style: ElevatedButton.styleFrom(
