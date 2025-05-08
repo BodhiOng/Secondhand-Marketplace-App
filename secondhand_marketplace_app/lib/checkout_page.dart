@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'models/cart_item.dart';
+import 'order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> cartItems;
@@ -100,15 +101,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // Proceed to checkout
   void _proceedToCheckout() {
-    // Here you would typically navigate to payment page
-    // For now, just show a success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Proceeding to payment...'),
-        backgroundColor: AppColors.mutedTeal,
-        duration: const Duration(seconds: 2),
+    // Navigate to the order confirmation page
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const OrderConfirmationPage(),
       ),
-    );
+    );                                        
   }
 
   @override
@@ -222,9 +221,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         item.isSelected = value ?? false;
                       });
                     },
-                    fillColor: MaterialStateProperty.resolveWith<Color>(
-                      (Set<MaterialState> states) {
-                        if (states.contains(MaterialState.selected)) {
+                    fillColor: WidgetStateProperty.resolveWith<Color>(
+                      (Set<WidgetState> states) {
+                        if (states.contains(WidgetState.selected)) {
                           return AppColors.mutedTeal;
                         }
                         return AppColors.coolGray.withAlpha(100);
