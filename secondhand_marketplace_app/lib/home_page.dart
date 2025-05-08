@@ -4,6 +4,7 @@ import 'search_results_page.dart';
 import 'product_details_page.dart';
 import 'checkout_page.dart';
 import 'my_purchases_page.dart';
+import 'my_wallet_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 
@@ -121,6 +122,12 @@ class _MyHomePageState extends State<MyHomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const MyPurchasesPage()),
+      );
+    } else if (index == 2) {
+      // Navigate to My Wallet page
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const MyWalletPage()),
       );
     } else {
       // For other tabs, just update the index for now
