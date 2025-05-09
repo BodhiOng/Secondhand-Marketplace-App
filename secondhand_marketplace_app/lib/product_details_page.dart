@@ -4,6 +4,7 @@ import 'models/product.dart'; // To access the Product class
 import 'models/cart_item.dart';
 import 'report_item_page.dart';
 import 'checkout_page.dart';
+import 'chat_detail_page.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -394,7 +395,29 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 1,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Create a sample chat for this product and seller
+                        final chat = {
+                          'id': widget.product.id,
+                          'name': widget.product.seller,
+                          'profilePic': _seller['profilePic'],
+                          'lastMessage': 'Hello, I\'m interested in your ${widget.product.name}. Is it still available?',
+                          'timestamp': DateTime.now(),
+                          'unread': 0,
+                          'product': {
+                            'name': widget.product.name,
+                            'imageUrl': widget.product.imageUrl,
+                          },
+                        };
+                        
+                        // Navigate to chat detail page for this product
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatDetailPage(chat: chat),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.deepSlateGray,
                         foregroundColor: AppColors.coolGray,

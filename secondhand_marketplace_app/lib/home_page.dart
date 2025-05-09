@@ -6,6 +6,7 @@ import 'checkout_page.dart';
 import 'my_purchases_page.dart';
 import 'my_wallet_page.dart';
 import 'my_profile_page.dart';
+import 'messages_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 import 'utils/page_transitions.dart';
@@ -215,7 +216,11 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             icon: const Icon(Icons.message_outlined, color: AppColors.coolGray),
             onPressed: () {
-              // Navigate to messages
+              // Navigate to messages page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MessagesPage()),
+              );
             },
           ),
         ],
