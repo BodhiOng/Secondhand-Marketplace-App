@@ -73,6 +73,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         content: Text(
           'Are you sure you want to remove ${_cartItems[index].product.name} from your cart?',
           style: TextStyle(color: AppColors.coolGray),
+          overflow: TextOverflow.visible,
         ),
         actions: [
           TextButton(
@@ -253,6 +254,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -261,6 +264,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           fontSize: 14,
                           color: AppColors.coolGray,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -273,6 +278,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               fontWeight: FontWeight.bold,
                               color: AppColors.softLemonYellow,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           // Quantity controls
                           Row(
@@ -364,6 +370,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   fontSize: 14,
                   color: AppColors.coolGray,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 'RM ${_totalPrice.toStringAsFixed(2)}',
@@ -372,6 +379,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -418,6 +426,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               fontSize: 16,
               color: AppColors.coolGray,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         // Delete button

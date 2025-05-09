@@ -143,7 +143,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                 keyboardType: TextInputType.number,
                 style: TextStyle(color: AppColors.coolGray),
                 decoration: InputDecoration(
-                  prefixText: r'$',
+                  prefixText: r'RM',
                   prefixStyle: TextStyle(color: AppColors.coolGray),
                   hintText: '0.00',
                   hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
@@ -302,7 +302,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                 keyboardType: TextInputType.number,
                 style: TextStyle(color: AppColors.coolGray),
                 decoration: InputDecoration(
-                  prefixText: r'$',
+                  prefixText: r'RM',
                   prefixStyle: TextStyle(color: AppColors.coolGray),
                   hintText: '0.00',
                   hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
@@ -755,26 +755,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: Icon(
-                Icons.info_outline,
-                color: AppColors.mutedTeal,
-              ),
-              title: Text(
-                'View Details',
-                style: TextStyle(color: AppColors.coolGray),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                // In a real app, this would show detailed information
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Payment method details would be shown here'),
-                    backgroundColor: AppColors.mutedTeal,
-                  ),
-                );
-              },
-            ),
             if (!(method['isDefault'] as bool))
               ListTile(
                 leading: Icon(
@@ -963,18 +943,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.info_outline, size: 16, color: AppColors.coolGray.withAlpha(150)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'In a real app, additional security verification would be required',
-                          style: TextStyle(fontSize: 12, color: AppColors.coolGray.withAlpha(150)),
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
