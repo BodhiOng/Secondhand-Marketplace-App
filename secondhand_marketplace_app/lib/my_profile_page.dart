@@ -26,7 +26,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   final TextEditingController _helpMessageController = TextEditingController();
   
   // Sample profile image
-  String _profileImageUrl = 'https://picsum.photos/id/1005/200/200';
+  final String _profileImageUrl = 'https://picsum.photos/id/1005/200/200';
   File? _profileImageFile;
   bool _isEditing = false;
   bool _isChangingPassword = false;
@@ -76,18 +76,20 @@ class _MyProfilePageState extends State<MyProfilePage> {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       
-      if (image != null) {
+      if (image != null && mounted) {
         setState(() {
           _profileImageFile = File(image.path);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: AppColors.warmCoral,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: AppColors.warmCoral,
+          ),
+        );
+      }
     }
   }
   
