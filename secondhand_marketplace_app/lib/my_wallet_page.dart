@@ -36,6 +36,22 @@ class _MyWalletPageState extends State<MyWalletPage> {
       'isDefault': false,
     },
   ];
+  
+  // Payment method types for adding new methods
+  final List<Map<String, dynamic>> _paymentMethodTypes = [
+    {
+      'name': 'Credit Card',
+      'icon': Icons.credit_card,
+    },
+    {
+      'name': 'PayPal',
+      'icon': Icons.account_balance_wallet,
+    },
+    {
+      'name': 'Bank Account',
+      'icon': Icons.account_balance,
+    },
+  ];
 
   // Transaction history
   final List<Map<String, dynamic>> _transactions = [
@@ -241,7 +257,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Successfully added \$${amount.toStringAsFixed(2)} to your wallet'),
+                  content: Text('Successfully added RM ${amount.toStringAsFixed(2)} to your wallet'),
                   backgroundColor: AppColors.mutedTeal,
                 ),
               );
@@ -410,7 +426,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Successfully withdrew \$${amount.toStringAsFixed(2)} from your wallet'),
+                  content: Text('Successfully withdrew RM ${amount.toStringAsFixed(2)} from your wallet'),
                   backgroundColor: AppColors.mutedTeal,
                 ),
               );
@@ -477,7 +493,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '\$${_balance.toStringAsFixed(2)}',
+                        'RM ${_balance.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -595,7 +611,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                             )
                           : null,
                       onTap: () {
-                        // In a real app, this would open payment method details
+                        _showPaymentMethodOptions(method, index);
                       },
                     );
                   },
@@ -603,15 +619,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
               ),
               const SizedBox(height: 8),
               TextButton.icon(
-                onPressed: () {
-                  // In a real app, this would open add payment method screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Add payment method functionality would go here'),
-                      backgroundColor: AppColors.mutedTeal,
-                    ),
-                  );
-                },
+                onPressed: _showAddPaymentMethodDialog,
                 icon: Icon(Icons.add, color: AppColors.mutedTeal, size: 16),
                 label: Text(
                   'Add Payment Method',
@@ -674,7 +682,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${isPositive ? '+' : ''}\$${amount.abs().toStringAsFixed(2)}',
+                            '${isPositive ? '+' : ''}RM ${amount.abs().toStringAsFixed(2)}',
                             style: TextStyle(
                               color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
                               fontWeight: FontWeight.bold,
@@ -730,5 +738,307 @@ class _MyWalletPageState extends State<MyWalletPage> {
   // Helper method to format date
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+  
+  // Show payment method options
+  void _showPaymentMethodOptions(Map<String, dynamic> method, int index) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.deepSlateGray,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                Icons.info_outline,
+                color: AppColors.mutedTeal,
+              ),
+              title: Text(
+                'View Details',
+                style: TextStyle(color: AppColors.coolGray),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                // In a real app, this would show detailed information
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Payment method details would be shown here'),
+                    backgroundColor: AppColors.mutedTeal,
+                  ),
+                );
+              },
+            ),
+            if (!(method['isDefault'] as bool))
+              ListTile(
+                leading: Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.mutedTeal,
+                ),
+                title: Text(
+                  'Set as Default',
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _setDefaultPaymentMethod(index);
+                },
+              ),
+            ListTile(
+              leading: Icon(
+                Icons.delete_outline,
+                color: AppColors.warmCoral,
+              ),
+              title: Text(
+                'Remove',
+                style: TextStyle(color: AppColors.coolGray),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _removePaymentMethod(index);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Set default payment method
+  void _setDefaultPaymentMethod(int index) {
+    setState(() {
+      for (int i = 0; i < _paymentMethods.length; i++) {
+        _paymentMethods[i]['isDefault'] = (i == index);
+      }
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${_paymentMethods[index]['name']} set as default payment method'),
+        backgroundColor: AppColors.mutedTeal,
+      ),
+    );
+  }
+  
+  // Remove payment method
+  void _removePaymentMethod(int index) {
+    final methodName = _paymentMethods[index]['name'];
+    final isDefault = _paymentMethods[index]['isDefault'] as bool;
+    
+    setState(() {
+      _paymentMethods.removeAt(index);
+      
+      // If we removed the default method, set the first one as default
+      if (isDefault && _paymentMethods.isNotEmpty) {
+        _paymentMethods[0]['isDefault'] = true;
+      }
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$methodName removed'),
+        backgroundColor: AppColors.mutedTeal,
+      ),
+    );
+  }
+  
+  // Show add payment method dialog
+  void _showAddPaymentMethodDialog() {
+    String selectedType = _paymentMethodTypes[0]['name'];
+    final TextEditingController detailController = TextEditingController();
+    String detailLabel = 'Card Number';
+    String detailHint = 'XXXX XXXX XXXX XXXX';
+    IconData detailIcon = Icons.credit_card;
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          // Update detail fields based on selected type
+          void updateDetailFields() {
+            if (selectedType == 'Credit Card') {
+              detailLabel = 'Card Number';
+              detailHint = 'XXXX XXXX XXXX XXXX';
+              detailIcon = Icons.credit_card;
+            } else if (selectedType == 'PayPal') {
+              detailLabel = 'Email Address';
+              detailHint = 'email@example.com';
+              detailIcon = Icons.email;
+            } else if (selectedType == 'Bank Account') {
+              detailLabel = 'Account Number';
+              detailHint = 'XXXXXXXX';
+              detailIcon = Icons.account_balance;
+            }
+          }
+          
+          return AlertDialog(
+            backgroundColor: AppColors.deepSlateGray,
+            title: Text(
+              'Add Payment Method',
+              style: TextStyle(color: AppColors.coolGray),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Payment Method Type:',
+                    style: TextStyle(color: AppColors.coolGray),
+                  ),
+                  const SizedBox(height: 8),
+                  // Payment method type selector
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.charcoalBlack,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.coolGray.withAlpha(100)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedType,
+                        dropdownColor: AppColors.charcoalBlack,
+                        isExpanded: true,
+                        icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
+                        items: _paymentMethodTypes.map((type) {
+                          return DropdownMenuItem<String>(
+                            value: type['name'] as String,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    type['icon'] as IconData,
+                                    color: AppColors.mutedTeal,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    type['name'] as String,
+                                    style: TextStyle(color: AppColors.coolGray),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            selectedType = value!;
+                            updateDetailFields();
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    detailLabel,
+                    style: TextStyle(color: AppColors.coolGray),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: detailController,
+                    style: TextStyle(color: AppColors.coolGray),
+                    decoration: InputDecoration(
+                      hintText: detailHint,
+                      hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                      prefixIcon: Icon(detailIcon, color: AppColors.mutedTeal),
+                      filled: true,
+                      fillColor: AppColors.charcoalBlack,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.coolGray),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.mutedTeal),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 16, color: AppColors.coolGray.withAlpha(150)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'In a real app, additional security verification would be required',
+                          style: TextStyle(fontSize: 12, color: AppColors.coolGray.withAlpha(150)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  final detail = detailController.text.trim();
+                  if (detail.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Please enter $detailLabel'),
+                        backgroundColor: AppColors.warmCoral,
+                      ),
+                    );
+                    return;
+                  }
+                  
+                  // Add the new payment method
+                  final newMethod = <String, dynamic>{
+                    'name': selectedType,
+                    'icon': _paymentMethodTypes
+                        .firstWhere((type) => type['name'] == selectedType)['icon'],
+                    'isDefault': false,
+                  };
+                  
+                  // Add the appropriate detail field based on type
+                  if (selectedType == 'Credit Card') {
+                    // Format the last 4 digits
+                    final lastFour = detail.replaceAll(' ', '').substring(
+                        detail.replaceAll(' ', '').length > 4 ? 
+                        detail.replaceAll(' ', '').length - 4 : 0);
+                    newMethod['lastDigits'] = lastFour.length == 4 ? lastFour : detail;
+                  } else if (selectedType == 'PayPal') {
+                    newMethod['email'] = detail;
+                  } else if (selectedType == 'Bank Account') {
+                    newMethod['accountNumber'] = '****${detail.substring(detail.length > 4 ? detail.length - 4 : 0)}';
+                  }
+                  
+                  setState(() {
+                    _paymentMethods.add(newMethod);
+                  });
+                  
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('$selectedType added successfully'),
+                      backgroundColor: AppColors.mutedTeal,
+                    ),
+                  );
+                },
+                child: Text(
+                  'Add',
+                  style: TextStyle(color: AppColors.mutedTeal),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }

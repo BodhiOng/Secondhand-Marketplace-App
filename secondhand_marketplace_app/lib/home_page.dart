@@ -376,7 +376,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '\$${product.price.toStringAsFixed(2)}',
+                                        'RM ${product.price.toStringAsFixed(2)}',
                                         style: TextStyle(
                                           color: AppColors.mutedTeal,
                                           fontWeight: FontWeight.bold,
@@ -507,7 +507,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '\$${product.price.toStringAsFixed(2)}',
+                                        'RM ${product.price.toStringAsFixed(2)}',
                                         style: TextStyle(
                                           color: AppColors.mutedTeal,
                                           fontWeight: FontWeight.bold,

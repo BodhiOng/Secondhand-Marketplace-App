@@ -510,7 +510,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                                 ),
                               ),
                               Text(
-                                '\$${order.totalPrice.toStringAsFixed(2)}',
+                                'RM ${order.totalPrice.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.mutedTeal,

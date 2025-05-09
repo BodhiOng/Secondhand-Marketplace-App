@@ -131,7 +131,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Bargain request sent for \$${_bargainPrice.toStringAsFixed(2)}',
+          'Bargain request sent for RM ${_bargainPrice.toStringAsFixed(2)}',
           style: const TextStyle(color: Colors.white),
         ),
         backgroundColor: AppColors.mutedTeal,
@@ -226,7 +226,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '\$${widget.product.price.toStringAsFixed(2)}',
+                            'RM ${widget.product.price.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -548,7 +548,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       style: const TextStyle(color: Colors.white),
                       autofocus: true,
                       decoration: InputDecoration(
-                        prefixText: '\$ ',
+                        prefixText: 'RM ',
                         prefixStyle: TextStyle(color: AppColors.mutedTeal),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: AppColors.mutedTeal.withAlpha(77)),
@@ -569,7 +569,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Minimum amount is: \$${_minimumPrice.toStringAsFixed(2)}',
+                      'Minimum amount is: RM ${_minimumPrice.toStringAsFixed(2)}',
                       style: TextStyle(color: AppColors.warmCoral),
                     ),
                     const SizedBox(height: 16),

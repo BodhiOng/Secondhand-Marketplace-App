@@ -225,7 +225,7 @@ class _ReportItemPageState extends State<ReportItemPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '\$${widget.product.price.toStringAsFixed(2)}',
+                              'RM ${widget.product.price.toStringAsFixed(2)}',
                               style: TextStyle(
                                 color: AppColors.mutedTeal,
                                 fontWeight: FontWeight.bold,

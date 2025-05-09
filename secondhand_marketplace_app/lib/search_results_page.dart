@@ -218,8 +218,8 @@ class SearchResultsPageState extends State<SearchResultsPage> {
       activeColor: AppColors.mutedTeal,
       inactiveColor: AppColors.coolGray.withAlpha(77),
                       labels: RangeLabels(
-                        '\$${_priceRange.start.round()}',
-                        '\$${_priceRange.end.round()}',
+                        'RM ${_priceRange.start.round()}',
+                        'RM ${_priceRange.end.round()}',
                       ),
                       onChanged: (RangeValues values) {
                         setState(() {
@@ -230,8 +230,8 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('\$${_priceRange.start.round()}', style: TextStyle(color: AppColors.coolGray)),
-                        Text('\$${_priceRange.end.round()}', style: TextStyle(color: AppColors.coolGray)),
+                        Text('RM ${_priceRange.start.round()}', style: TextStyle(color: AppColors.coolGray)),
+                        Text('RM ${_priceRange.end.round()}', style: TextStyle(color: AppColors.coolGray)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -352,7 +352,7 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                             ],
                           ),
                           trailing: Text(
-                            '\$${product.price.toStringAsFixed(2)}',
+                            'RM ${product.price.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
