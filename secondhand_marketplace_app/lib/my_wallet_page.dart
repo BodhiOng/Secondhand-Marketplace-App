@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'home_page.dart';
 import 'my_purchases_page.dart';
+import 'my_profile_page.dart';
 import 'utils/page_transitions.dart';
 
 class MyWalletPage extends StatefulWidget {
@@ -105,11 +106,12 @@ class _MyWalletPageState extends State<MyWalletPage> {
       setState(() {
         _selectedIndex = index;
       });
-    } else {
-      // For other tabs, just update the index for now
-      setState(() {
-        _selectedIndex = index;
-      });
+    } else if (index == 3) {
+      // Navigate to Profile page
+      Navigator.pushReplacement(
+        context,
+        DarkPageReplaceRoute(page: const MyProfilePage()),
+      );
     }
   }
 

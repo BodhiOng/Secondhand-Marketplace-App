@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'home_page.dart';
 import 'my_wallet_page.dart';
+import 'my_profile_page.dart';
 import 'models/purchase_order.dart';
 import 'models/product.dart';
 import 'utils/page_transitions.dart';
@@ -116,11 +117,12 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         context,
         DarkPageReplaceRoute(page: const MyWalletPage()),
       );
-    } else {
-      // For other tabs, just update the index for now
-      setState(() {
-        _selectedIndex = index;
-      });
+    } else if (index == 3) {
+      // Navigate to Profile page
+      Navigator.pushReplacement(
+        context,
+        DarkPageReplaceRoute(page: const MyProfilePage()),
+      );
     }
   }
 

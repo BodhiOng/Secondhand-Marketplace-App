@@ -5,6 +5,7 @@ import 'product_details_page.dart';
 import 'checkout_page.dart';
 import 'my_purchases_page.dart';
 import 'my_wallet_page.dart';
+import 'my_profile_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 import 'utils/page_transitions.dart';
@@ -130,12 +131,12 @@ class _MyHomePageState extends State<MyHomePage> {
         context,
         DarkPageRoute(page: const MyWalletPage()),
       );
-    } else {
-      // For other tabs, just update the index for now
-      // In a complete app, you would navigate to the respective pages
-      setState(() {
-        _selectedIndex = index;
-      });
+    } else if (index == 3) {
+      // Navigate to My Profile page
+      Navigator.push(
+        context,
+        DarkPageRoute(page: const MyProfilePage()),
+      );
     }
   }
 
