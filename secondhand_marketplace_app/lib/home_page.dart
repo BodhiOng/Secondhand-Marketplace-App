@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'search_results_page.dart';
 import 'product_details_page.dart';
@@ -24,6 +25,114 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  // Try to get Firestore instance, but handle the case where Firebase isn't initialized
+  late final FirebaseFirestore? _firestore;
+  
+  // Flag to track if Firebase is available
+  bool _isFirebaseAvailable = true;
+  List<Product> _featuredProducts = [];
+  List<Product> _recentProducts = [];
+  bool _isLoadingFeatured = true;
+  bool _isLoadingRecent = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize Firestore and check if it's available
+    try {
+      _firestore = FirebaseFirestore.instance;
+      _fetchFeaturedProducts();
+      _fetchRecentProducts();
+    } catch (e) {
+      debugPrint('Error accessing Firestore: $e');
+      setState(() {
+        _isFirebaseAvailable = false;
+        _isLoadingFeatured = false;
+        _isLoadingRecent = false;
+      });
+    }
+  }
+  
+  // Fetch products with highest ad boost price
+  Future<void> _fetchFeaturedProducts() async {
+    if (!_isFirebaseAvailable || _firestore == null) {
+      setState(() {
+        _isLoadingFeatured = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isLoadingFeatured = true;
+    });
+    
+    try {
+      // Query products collection, order by adBoostPrice in descending order, limit to 10
+      final QuerySnapshot snapshot = await _firestore
+          .collection('products')
+          .orderBy('adBoostPrice', descending: true)
+          .limit(10)
+          .get();
+      
+      // Convert the documents to Product objects
+      final List<Product> products = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return Product.fromFirestore(data, doc.id);
+      }).toList();
+      
+      setState(() {
+        _featuredProducts = products;
+        _isLoadingFeatured = false;
+      });
+    } catch (e) {
+      // Log error fetching featured products
+      debugPrint('Error fetching featured products: $e');
+      setState(() {
+        _isLoadingFeatured = false;
+      });
+    }
+  }
+  
+  // Fetch recently added products
+  Future<void> _fetchRecentProducts() async {
+    if (!_isFirebaseAvailable || _firestore == null) {
+      setState(() {
+        _isLoadingRecent = false;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isLoadingRecent = true;
+    });
+    
+    try {
+      // Query products collection, order by timestamp in descending order (newest first), limit to 5
+      final QuerySnapshot snapshot = await _firestore
+          .collection('products')
+          .orderBy('id', descending: true) // Using ID as a proxy for timestamp since our data doesn't have an actual timestamp
+          .limit(5)
+          .get();
+      
+      // Convert the documents to Product objects
+      final List<Product> products = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return Product.fromFirestore(data, doc.id);
+      }).toList();
+      
+      setState(() {
+        _recentProducts = products;
+        _isLoadingRecent = false;
+      });
+    } catch (e) {
+      // Log error fetching recent products
+      debugPrint('Error fetching recent products: $e');
+      setState(() {
+        _isLoadingRecent = false;
+      });
+    }
+  }
   
   // Sample categories
   final List<Category> _categories = [
@@ -38,81 +147,6 @@ class _MyHomePageState extends State<MyHomePage> {
     Category(name: 'Others', icon: Icons.more_horiz),
   ];
   
-  // Sample products
-  final List<Product> _products = [
-    Product(
-      id: '1',
-      name: 'iPhone 13 Pro',
-      description: 'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color. Minor scratches on the back but perfect working condition.',
-      price: 699.99,
-      imageUrl: 'https://picsum.photos/id/1/200/200',
-      category: 'Electronics',
-      seller: 'John Doe',
-      rating: 4.7,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-    Product(
-      id: '2',
-      name: 'Leather Sofa',
-      description: 'Brown leather sofa, 3-seater, 2 years old. Very comfortable and in excellent condition.',
-      price: 450.00,
-      imageUrl: 'https://picsum.photos/id/2/200/200',
-      category: 'Furniture',
-      seller: 'Jane Smith',
-      rating: 4.9,
-      condition: 'Excellent',
-      listedDate: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    Product(
-      id: '3',
-      name: 'Nike Air Jordan',
-      description: 'Nike Air Jordan 1, size US 10, worn only twice. Original box included.',
-      price: 180.00,
-      imageUrl: 'https://picsum.photos/id/3/200/200',
-      category: 'Clothing',
-      seller: 'Mike Johnson',
-      rating: 4.5,
-      condition: 'Like New',
-      listedDate: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    Product(
-      id: '4',
-      name: 'Harry Potter Collection',
-      description: 'Complete set of Harry Potter books (7 books), hardcover edition. Minor wear on the covers.',
-      price: 120.00,
-      imageUrl: 'https://picsum.photos/id/4/200/200',
-      category: 'Books',
-      seller: 'Sarah Williams',
-      rating: 4.8,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 7)),
-    ),
-    Product(
-      id: '5',
-      name: 'Mountain Bike',
-      description: 'Trek mountain bike, 21-speed, 26-inch wheels. Used for 1 year, recently serviced.',
-      price: 350.00,
-      imageUrl: 'https://picsum.photos/id/5/200/200',
-      category: 'Sports',
-      seller: 'David Brown',
-      rating: 4.6,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    Product(
-      id: '6',
-      name: 'LEGO Star Wars Set',
-      description: 'LEGO Star Wars Millennium Falcon, 75192. Built once and disassembled. All pieces included.',
-      price: 550.00,
-      imageUrl: 'https://picsum.photos/id/6/200/200',
-      category: 'Toys',
-      seller: 'Emma Davis',
-      rating: 4.9,
-      condition: 'Excellent',
-      listedDate: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ];
 
   void _onItemTapped(int index) {
     // Only update the index if we're staying on this page
@@ -196,11 +230,17 @@ class _MyHomePageState extends State<MyHomePage> {
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined, color: AppColors.coolGray),
             onPressed: () {
-              // Create sample cart items from the first few products
-              final sampleCartItems = [
-                CartItem(product: _products[0], quantity: 1),
-                CartItem(product: _products[1], quantity: 2),
-              ];
+              // Create sample cart items from featured products if available
+              List<CartItem> sampleCartItems = [];
+              
+              if (_featuredProducts.isNotEmpty) {
+                // Use the first two featured products if available
+                sampleCartItems.add(CartItem(product: _featuredProducts[0], quantity: 1));
+                
+                if (_featuredProducts.length > 1) {
+                  sampleCartItems.add(CartItem(product: _featuredProducts[1], quantity: 2));
+                }
+              }
               
               // Navigate to checkout page
               Navigator.push(
@@ -279,7 +319,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               
-              // Featured items
+              // Featured items (products with highest ad boost)
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,109 +349,170 @@ class _MyHomePageState extends State<MyHomePage> {
               const SizedBox(height: 16),
               SizedBox(
                 height: 250,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _products.length,
-                  itemBuilder: (context, index) {
-                    final product = _products[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailsPage(product: product),
+                child: !_isFirebaseAvailable
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.cloud_off, size: 48, color: AppColors.coolGray.withAlpha(150)),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Firebase connection unavailable',
+                            style: TextStyle(color: AppColors.coolGray),
                           ),
-                        );
-                      },
-                      child: Container(
-                        width: 180,
-                        margin: const EdgeInsets.only(right: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.deepSlateGray,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(50),
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                topRight: Radius.circular(12),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Sample data is displayed',
+                            style: TextStyle(color: AppColors.coolGray.withAlpha(150), fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _isLoadingFeatured
+                    ? const Center(child: CircularProgressIndicator())
+                    : _featuredProducts.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No featured products available',
+                            style: TextStyle(color: AppColors.coolGray),
+                          ),
+                        )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _featuredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _featuredProducts[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailsPage(product: product),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 180,
+                              margin: const EdgeInsets.only(right: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.deepSlateGray,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withAlpha(50),
+                                    blurRadius: 5,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              child: Image.network(
-                                product.imageUrl,
-                                height: 120,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(12),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    product.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: AppColors.coolGray,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    product.description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.coolGray.withAlpha(179),
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  Stack(
                                     children: [
-                                      Text(
-                                        'RM ${product.price.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: AppColors.mutedTeal,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
+                                      ClipRRect(
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(12),
+                                          topRight: Radius.circular(12),
+                                        ),
+                                        child: Image.network(
+                                          product.imageUrl,
+                                          height: 120,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Container(
+                                              height: 120,
+                                              width: double.infinity,
+                                              color: Colors.grey[800],
+                                              child: const Icon(Icons.image_not_supported, color: Colors.white),
+                                            );
+                                          },
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          Icon(Icons.star, size: 16, color: Colors.amber[700]),
-                                          Text(
-                                            ' ${product.rating}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.coolGray,
+                                      // Ad boost badge
+                                      if (product.adBoostPrice > 0)
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.withAlpha(230),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              'Featured',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
                                     ],
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: AppColors.coolGray,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          product.description,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.coolGray.withAlpha(179),
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'RM ${product.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                color: AppColors.mutedTeal,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.coolGray),
+                                                Text(
+                                                  ' ${product.stock}',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.coolGray,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
               
               // Recently added
@@ -442,109 +543,151 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
               ),
               const SizedBox(height: 16),
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: 3, // Show only 3 items
-                itemBuilder: (context, index) {
-                  final product = _products[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ProductDetailsPage(product: product),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepSlateGray,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(50),
-                            blurRadius: 5,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
+              !_isFirebaseAvailable
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
-                            ),
-                            child: Image.network(
-                              product.imageUrl,
-                              height: 100,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: AppColors.coolGray,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    product.description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.coolGray.withAlpha(179),
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'RM ${product.price.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: AppColors.mutedTeal,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          Icon(Icons.access_time, size: 14, color: AppColors.coolGray.withAlpha(179)),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${DateTime.now().difference(product.listedDate).inDays}d ago',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.coolGray.withAlpha(179),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                          Icon(Icons.cloud_off, size: 32, color: AppColors.coolGray.withAlpha(150)),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Firebase connection unavailable',
+                            style: TextStyle(color: AppColors.coolGray),
                           ),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
+                  )
+                : _isLoadingRecent
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  : _recentProducts.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40),
+                          child: Text(
+                            'No recent products available',
+                            style: TextStyle(color: AppColors.coolGray),
+                          ),
+                        ),
+                      )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _recentProducts.length > 3 ? 3 : _recentProducts.length, // Show only 3 items max
+                      itemBuilder: (context, index) {
+                        final product = _recentProducts[index];
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailsPage(product: product),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.deepSlateGray,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(50),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    bottomLeft: Radius.circular(12),
+                                  ),
+                                  child: Image.network(
+                                    product.imageUrl,
+                                    height: 100,
+                                    width: 100,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        height: 100,
+                                        width: 100,
+                                        color: Colors.grey[800],
+                                        child: const Icon(Icons.image_not_supported, color: Colors.white),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.name,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: AppColors.coolGray,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          product.description,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.coolGray.withAlpha(179),
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'RM ${product.price.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                color: AppColors.mutedTeal,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            Row(
+                                              children: [
+                                                Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.coolGray),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${product.stock} in stock',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.coolGray,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ],
           ),
         ),

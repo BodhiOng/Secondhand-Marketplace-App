@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "818439486670",
+    "project_id": "secondhand-marketplace-app",
+    "storage_bucket": "secondhand-marketplace-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:818439486670:android:d4583d5cc01329980be49f",
+        "android_client_info": {
+          "package_name": "com.example.secondhand_marketplace_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQIUvAjQyxHtm3_l1pHHSIpXOWU3lYd68"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

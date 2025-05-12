@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:secondhand_marketplace_app/constants.dart';
 import 'landing_page.dart';
 
-void main() {
+void main() async {
+  // Initialize Flutter bindings
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase with a fallback to prevent errors during development
+  try {
+    await Firebase.initializeApp();
+    debugPrint('Firebase initialized successfully');
+  } catch (e) {
+    debugPrint('Failed to initialize Firebase: $e');
+    // Continue with the app even if Firebase fails to initialize
+    // This allows development without Firebase configuration
+  }
+  
   runApp(const MyApp());
 }
 

@@ -118,11 +118,15 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
       description: widget.product.description,
       price: _bargainPrice, // Use the bargained price
       imageUrl: widget.product.imageUrl,
+      additionalImages: widget.product.additionalImages,
       category: widget.product.category,
+      sellerId: widget.product.sellerId,
       seller: widget.product.seller,
       rating: widget.product.rating,
       condition: widget.product.condition,
       listedDate: widget.product.listedDate,
+      stock: widget.product.stock,
+      adBoostPrice: widget.product.adBoostPrice,
     );
     
     // Create a cart item with the bargained product
