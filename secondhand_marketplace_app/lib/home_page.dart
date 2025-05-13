@@ -8,6 +8,7 @@ import 'my_purchases_page.dart';
 import 'my_wallet_page.dart';
 import 'my_profile_page.dart';
 import 'messages_page.dart';
+import 'category_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 import 'utils/page_transitions.dart';
@@ -287,32 +288,45 @@ class _MyHomePageState extends State<MyHomePage> {
                   scrollDirection: Axis.horizontal,
                   itemCount: _categories.length,
                   itemBuilder: (context, index) {
-                    return Container(
-                      width: 80,
-                      margin: const EdgeInsets.only(right: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepSlateGray,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.mutedTeal.withAlpha(100)),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _categories[index].icon,
-                            color: AppColors.mutedTeal,
-                            size: 32,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _categories[index].name,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.coolGray,
+                    return GestureDetector(
+                      onTap: () {
+                        // Navigate to the category page when a category is tapped
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CategoryPage(
+                              categoryName: _categories[index].name,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ],
+                        );
+                      },
+                      child: Container(
+                        width: 80,
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepSlateGray,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.mutedTeal.withAlpha(100)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _categories[index].icon,
+                              color: AppColors.mutedTeal,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _categories[index].name,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.coolGray,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

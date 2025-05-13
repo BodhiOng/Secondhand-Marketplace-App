@@ -14,7 +14,7 @@ class SearchResultsPage extends StatefulWidget {
 
 class SearchResultsPageState extends State<SearchResultsPage> {
   final TextEditingController _searchController = TextEditingController();
-  RangeValues _priceRange = const RangeValues(0, 1000);
+  RangeValues _priceRange = const RangeValues(0, 10000);
   String _selectedLocation = 'All Locations';
   String _selectedCondition = 'All Conditions';
   bool _showFilterOptions = false;
@@ -228,10 +228,9 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                     RangeSlider(
                       values: _priceRange,
                       min: 0,
-                      max: 2000,
-                      divisions: 20,
-      activeColor: AppColors.mutedTeal,
-      inactiveColor: AppColors.coolGray.withAlpha(77),
+                      max: 10000,
+                      activeColor: AppColors.mutedTeal,
+                      inactiveColor: AppColors.coolGray.withAlpha(77),
                       labels: RangeLabels(
                         'RM ${_priceRange.start.round()}',
                         'RM ${_priceRange.end.round()}',
