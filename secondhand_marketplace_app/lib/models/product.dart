@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Product {
   final String id;
@@ -13,6 +14,7 @@ class Product {
   final double? rating;
   final String condition;
   final DateTime listedDate;
+  final DateTime? createdAt; // When the product was created
   final int stock;
   final double adBoostPrice;
 
@@ -29,6 +31,7 @@ class Product {
     this.rating,
     required this.condition,
     required this.listedDate,
+    this.createdAt,
     required this.stock,
     required this.adBoostPrice,
   });
@@ -50,6 +53,7 @@ class Product {
       rating: null, // We'll calculate this separately if needed
       condition: data['condition'] ?? '',
       listedDate: DateTime.now(), // We'll use current time as default
+      createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,
       stock: data['stock'] ?? 0,
       adBoostPrice: (data['adBoostPrice'] ?? 0).toDouble(),
     );

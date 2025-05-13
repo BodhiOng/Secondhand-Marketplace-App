@@ -111,10 +111,10 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     
     try {
-      // Query products collection, order by timestamp in descending order (newest first), limit to 5
+      // Query products collection, order by createdAt timestamp in descending order (newest first), limit to 5
       final QuerySnapshot snapshot = await _firestore
           .collection('products')
-          .orderBy('id', descending: true) // Using ID as a proxy for timestamp since our data doesn't have an actual timestamp
+          .orderBy('createdAt', descending: true) // Using the createdAt timestamp to sort by newest first
           .limit(5)
           .get();
       

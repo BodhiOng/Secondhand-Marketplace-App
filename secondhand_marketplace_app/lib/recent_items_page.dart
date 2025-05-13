@@ -76,10 +76,10 @@ class RecentItemsPageState extends State<RecentItemsPage> {
     });
     
     try {
-      // Query products collection, order by timestamp in descending order (newest first)
+      // Query products collection, order by createdAt timestamp in descending order (newest first)
       final QuerySnapshot snapshot = await _firestore
           .collection('products')
-          .orderBy('id', descending: true) // Using ID as a proxy for timestamp since our data doesn't have an actual timestamp
+          .orderBy('createdAt', descending: true) // Using the createdAt timestamp to sort by newest first
           .get();
       
       // Convert the documents to Product objects
