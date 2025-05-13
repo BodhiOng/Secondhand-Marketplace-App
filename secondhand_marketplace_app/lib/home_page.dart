@@ -9,6 +9,8 @@ import 'my_wallet_page.dart';
 import 'my_profile_page.dart';
 import 'messages_page.dart';
 import 'category_page.dart';
+import 'featured_items_page.dart';
+import 'recent_items_page.dart';
 import 'models/product.dart';
 import 'models/cart_item.dart';
 import 'utils/page_transitions.dart';
@@ -349,6 +351,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   TextButton(
                     onPressed: () {
                       // Navigate to all featured items
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FeaturedItemsPage(),
+                        ),
+                      );
                     },
                     child: Text(
                       'See All',
@@ -545,6 +553,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   TextButton(
                     onPressed: () {
                       // Navigate to all recent items
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RecentItemsPage(),
+                        ),
+                      );
                     },
                     child: Text(
                       'See All',
