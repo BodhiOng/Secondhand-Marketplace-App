@@ -350,62 +350,83 @@ class CategoryPageState extends State<CategoryPage> {
                         itemCount: filteredProducts.length,
                         itemBuilder: (context, index) {
                           final product = filteredProducts[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 8),
-                            color: AppColors.deepSlateGray,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.all(12),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  product.imageUrl,
-                                  width: 80,
-                                  height: 80,
-                                  fit: BoxFit.cover,
+                           return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailsPage(product: product),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              color: AppColors.deepSlateGray,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Product image
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        product.imageUrl,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Product details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Product name with more space
+                                          Text(
+                                            product.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold, 
+                                              color: AppColors.coolGray,
+                                              fontSize: 16,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Rating and condition
+                                          Row(
+                                            children: [
+                                              Icon(Icons.star, size: 16, color: Colors.amber[700]),
+                                              Text(' ${product.rating} \u2022 ', style: TextStyle(color: AppColors.coolGray)),
+                                              Expanded(
+                                                child: Text(
+                                                  product.condition,
+                                                  style: TextStyle(color: AppColors.coolGray),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          // Price in its own row
+                                          Text(
+                                            'RM ${product.price.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: AppColors.mutedTeal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              title: Text(
-                                product.name,
-                                style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.coolGray),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    product.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(color: AppColors.coolGray.withAlpha(179)),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.star, size: 16, color: Colors.amber[700]),
-                                      Text(' ${product.rating} \u2022 ', style: TextStyle(color: AppColors.coolGray)),
-                                      Text(product.condition, style: TextStyle(color: AppColors.coolGray)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              trailing: Text(
-                                'RM ${product.price.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppColors.mutedTeal,
-                                ),
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProductDetailsPage(product: product),
-                                  ),
-                                );
-                              },
                             ),
-                          );
+                           );
                         },
                       ),
           ),
