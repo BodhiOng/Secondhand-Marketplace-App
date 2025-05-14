@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
 import 'models/cart_item.dart';
@@ -16,7 +17,6 @@ class ProductDetailsPage extends StatefulWidget {
 }
 
 class ProductDetailsPageState extends State<ProductDetailsPage> {
-  final int _availableStock = 1; // Sample stock value
   bool _showBargainSheet = false;
   double _bargainPrice = 0;
   final TextEditingController _bargainController = TextEditingController();
@@ -24,16 +24,21 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   // Calculate minimum price (70% of product price)
   double get _minimumPrice => widget.product.price * 0.7;
 
-  // Sample seller data
-  final Map<String, dynamic> _seller = {
-    'name': 'John Seller',
-    'city': 'New York',
-    'responseTime': '< 1 hour',
-    'rating': 4.8,
-    'sales': 128,
-    'joinDate': '2 years ago',
-    'profilePic': 'https://picsum.photos/id/1005/200/200',
+  // Firestore instance
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // Seller data
+  Map<String, dynamic> _seller = {
+    'username': 'Loading...',
+    'address': 'Loading...',
+    'averageResponseTime': 'Loading...',
+    'profileImageUrl': 'https://picsum.photos/id/1005/200/200', // Default image
+    'rating': 0.0,
+    'sales': 0,
+    'joinDate': 'Loading...',
   };
+  
+  bool _isLoadingSeller = true;
 
   // Sample reviews
   final List<Map<String, dynamic>> _reviews = [
@@ -68,6 +73,44 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     super.initState();
     _bargainPrice = widget.product.price * 0.8; // Set initial bargain price to 80% of original
     _bargainController.text = _bargainPrice.toStringAsFixed(2);
+    
+    // Fetch seller information
+    _fetchSellerInfo();
+  }
+  
+  // Fetch seller information from Firestore
+  Future<void> _fetchSellerInfo() async {
+    try {
+      final String sellerId = widget.product.sellerId;
+      final DocumentSnapshot userDoc = await _firestore.collection('users').doc(sellerId).get();
+      
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _seller = {
+            'username': userData['username'] ?? 'Unknown Seller',
+            'address': userData['address'] ?? 'Location not available',
+            'averageResponseTime': userData['averageResponseTime'] ?? '< 24 hours',
+            'profileImageUrl': userData['profileImageUrl'] ?? 'https://picsum.photos/id/1005/200/200',
+            'rating': userData['rating'] ?? 4.0,
+            'sales': userData['sales'] ?? 0,
+            'joinDate': userData['joinDate'] ?? 'New seller',
+          };
+          _isLoadingSeller = false;
+        });
+      } else {
+        // If user document doesn't exist, use default values
+        setState(() {
+          _seller['username'] = 'Seller ${sellerId.substring(0, 4)}';
+          _isLoadingSeller = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching seller info: $e');
+      setState(() {
+        _isLoadingSeller = false;
+      });
+    }
   }
 
   @override
@@ -79,9 +122,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   // Calculate average rating from reviews
   double get _averageRating {
     if (_reviews.isEmpty) return 0;
-    double total = _reviews.fold(0, (sum, review) => sum + (review['rating'] as double));
+    double total = _reviews.fold(0, (accumulator, review) => accumulator + (review['rating'] as double));
     return total / _reviews.length;
   }
+  
+
 
   // Build star rating widget
   Widget _buildRatingStars(double rating) {
@@ -239,7 +284,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                             ),
                           ),
                           Text(
-                            '$_availableStock in stock',
+                            '${widget.product.stock} in stock',
                             style: TextStyle(
                               fontSize: 16,
                               color: AppColors.coolGray.withAlpha(179),
@@ -253,51 +298,78 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       Divider(color: AppColors.coolGray.withAlpha(77)),
                       const SizedBox(height: 16),
                       
-                      // Seller Info
-                      Row(
-                        children: [
-                          // Seller Profile Pic
-                          CircleAvatar(
-                            radius: 25,
-                            backgroundImage: NetworkImage(_seller['profilePic']),
-                          ),
-                          const SizedBox(width: 16),
-                          
-                          // Seller Details
-                          Expanded(
-                            child: Column(
+                      // Seller Information Section
+                      Container(
+                        margin: const EdgeInsets.only(top: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepSlateGray,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: _isLoadingSeller
+                          ? Center(child: CircularProgressIndicator(color: AppColors.mutedTeal))
+                          : Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  _seller['name'],
+                                  'Seller Information',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.coolGray,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 16),
                                 Row(
                                   children: [
-                                    Icon(Icons.location_on, size: 14, color: AppColors.coolGray.withAlpha(179)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _seller['city'],
-                                      style: TextStyle(color: AppColors.coolGray.withAlpha(179)),
+                                    // Seller Profile Pic
+                                    CircleAvatar(
+                                      radius: 30,
+                                      backgroundImage: NetworkImage(_seller['profileImageUrl']),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Icon(Icons.access_time, size: 14, color: AppColors.coolGray.withAlpha(179)),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Responds in ${_seller['responseTime']}',
-                                      style: TextStyle(color: AppColors.coolGray.withAlpha(179)),
+                                    const SizedBox(width: 16),
+                                    
+                                    // Seller Details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            _seller['username'],
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: AppColors.coolGray,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _seller['address'],
+                                            style: TextStyle(color: AppColors.coolGray),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.access_time, size: 14, color: AppColors.coolGray),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Response time: ${_seller["averageResponseTime"]} minutes',
+                                                style: TextStyle(color: AppColors.coolGray, fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                    
+
                                   ],
                                 ),
+                                const SizedBox(height: 16),
+                                
+
                               ],
                             ),
-                          ),
-                        ],
                       ),
                       const SizedBox(height: 16),
                       

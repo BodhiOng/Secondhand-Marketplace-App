@@ -512,18 +512,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 fontSize: 16,
                                               ),
                                             ),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.coolGray),
-                                                Text(
-                                                  ' ${product.stock}',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.coolGray,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
                                           ],
                                         ),
                                       ],
@@ -690,19 +678,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 16,
                                               ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.coolGray),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${product.stock} in stock',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.coolGray,
-                                                  ),
-                                                ),
-                                              ],
                                             ),
                                           ],
                                         ),

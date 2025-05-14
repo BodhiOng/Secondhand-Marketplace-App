@@ -50,7 +50,7 @@ class Product {
       category: data['category'] ?? '',
       sellerId: data['sellerId'] ?? '',
       seller: null, // We'll fetch this separately if needed
-      rating: null, // We'll calculate this separately if needed
+      rating: data['rating'] != null ? (data['rating'] as num).toDouble() : null, // Load rating from Firestore
       condition: data['condition'] ?? '',
       listedDate: DateTime.now(), // We'll use current time as default
       createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : null,

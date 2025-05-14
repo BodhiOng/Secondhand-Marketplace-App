@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'product_details_page.dart';
 import 'models/product.dart';
@@ -15,20 +16,16 @@ class SearchResultsPage extends StatefulWidget {
 class SearchResultsPageState extends State<SearchResultsPage> {
   final TextEditingController _searchController = TextEditingController();
   RangeValues _priceRange = const RangeValues(0, 10000);
-  String _selectedLocation = 'All Locations';
   String _selectedCondition = 'All Conditions';
   bool _showFilterOptions = false;
-
-  // Sample locations
-  final List<String> _locations = [
-    'All Locations',
-    'United States',
-    'Europe',
-    'Asia',
-    'Australia',
-    'Canada',
-    'United Kingdom',
-  ];
+  
+  // Try to get Firestore instance, but handle the case where Firebase isn't initialized
+  late final FirebaseFirestore? _firestore;
+  
+  // Flag to track if Firebase is available
+  bool _isFirebaseAvailable = true;
+  List<Product> _searchResults = [];
+  bool _isLoading = true;
 
   // Sample conditions
   final List<String> _conditions = [
@@ -40,8 +37,8 @@ class SearchResultsPageState extends State<SearchResultsPage> {
     'Poor',
   ];
 
-  // Sample search results
-  final List<Product> _searchResults = [
+  // For when Firebase is not available
+  final List<Product> _sampleProducts = [
     Product(
       id: '1',
       name: 'iPhone 13 Pro',
@@ -123,12 +120,97 @@ class SearchResultsPageState extends State<SearchResultsPage> {
   void initState() {
     super.initState();
     _searchController.text = widget.searchQuery;
+    
+    // Initialize Firestore and check if it's available
+    try {
+      _firestore = FirebaseFirestore.instance;
+      _performSearch();
+    } catch (e) {
+      debugPrint('Error accessing Firestore: $e');
+      setState(() {
+        _isFirebaseAvailable = false;
+        _isLoading = false;
+        // If Firebase is not available, use sample data
+        _searchResults = _filterSampleProducts();
+      });
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Filter sample products based on search query
+  List<Product> _filterSampleProducts() {
+    final String query = _searchController.text.toLowerCase();
+    return _sampleProducts.where((product) {
+      return product.name.toLowerCase().contains(query) ||
+             product.description.toLowerCase().contains(query) ||
+             product.category.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  // Perform search using Firestore
+  Future<void> _performSearch() async {
+    if (!_isFirebaseAvailable || _firestore == null) {
+      setState(() {
+        _isLoading = false;
+        _searchResults = _filterSampleProducts();
+      });
+      return;
+    }
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final String query = _searchController.text.toLowerCase();
+      
+      // Get all products (or a reasonable subset)
+      final QuerySnapshot allProducts = await _firestore
+          .collection('products')
+          .limit(100)  // Limit to prevent performance issues
+          .get();
+          
+      final List<Product> products = [];
+      
+      for (final doc in allProducts.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final id = doc.id;
+        final product = Product.fromFirestore(data, id);
+        
+        // Client-side filtering for partial matches
+        if (product.name.toLowerCase().contains(query) ||
+            product.description.toLowerCase().contains(query) ||
+            product.category.toLowerCase().contains(query)) {
+          products.add(product);
+        }
+      }
+      
+      // Sort by createdAt if available, otherwise by name
+      products.sort((a, b) {
+        if (a.createdAt != null && b.createdAt != null) {
+          return b.createdAt!.compareTo(a.createdAt!); // Newest first
+        } else {
+          return a.name.compareTo(b.name); // Alphabetical fallback
+        }
+      });
+      
+      setState(() {
+        _searchResults = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Error searching products: $e');
+      setState(() {
+        _isLoading = false;
+        // If there's an error, use sample data
+        _searchResults = _filterSampleProducts();
+      });
+    }
   }
 
   // Filter the search results based on selected filters
@@ -140,13 +222,9 @@ class SearchResultsPageState extends State<SearchResultsPage> {
       
       // Condition filter
       final bool conditionMatch = _selectedCondition == 'All Conditions' || 
-                                 product.condition == _selectedCondition;
+                               product.condition == _selectedCondition;
       
-      // For location, we'd typically check the product's location field
-      // Since our model doesn't have it, we'll assume all match for demo
-      final bool locationMatch = _selectedLocation == 'All Locations' || true;
-      
-      return priceMatch && conditionMatch && locationMatch;
+      return priceMatch && conditionMatch;
     }).toList();
   }
 
@@ -250,37 +328,7 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                     ),
                     const SizedBox(height: 16),
                     
-                    // Shipped From Dropdown
-                    Text('Shipped From', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.coolGray)),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.deepSlateGray,
-                        border: Border.all(color: AppColors.mutedTeal.withAlpha(77)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButton<String>(
-                        isExpanded: true,
-                        value: _selectedLocation,
-                        underline: Container(),
-                        dropdownColor: AppColors.deepSlateGray,
-                        icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedLocation = newValue;
-                            });
-                          }
-                        },
-                        items: _locations.map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value, style: TextStyle(color: AppColors.coolGray)),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+
                     
                     // Item Condition Dropdown
                     Text('Item Condition', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.coolGray)),
@@ -320,71 +368,94 @@ class SearchResultsPageState extends State<SearchResultsPage> {
           
           // Search results
           Expanded(
-            child: filteredResults.isEmpty
-                ? Center(child: Text('No results found', style: TextStyle(color: AppColors.coolGray)))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(8),
-                    itemCount: filteredResults.length,
-                    itemBuilder: (context, index) {
-                      final product = filteredResults[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        color: AppColors.deepSlateGray,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(12),
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              product.imageUrl,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: AppColors.mutedTeal))
+                : filteredResults.isEmpty
+                    ? Center(child: Text('No results found', style: TextStyle(color: AppColors.coolGray)))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: filteredResults.length,
+                        itemBuilder: (context, index) {
+                          final product = filteredResults[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductDetailsPage(product: product),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              color: AppColors.deepSlateGray,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Product image
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        product.imageUrl,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    // Product details
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Product name with more space
+                                          Text(
+                                            product.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold, 
+                                              color: AppColors.coolGray,
+                                              fontSize: 16,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Rating and condition
+                                          Row(
+                                            children: [
+                                              Icon(Icons.star, size: 16, color: Colors.amber[700]),
+                                              Text(' ${product.rating ?? 4.5} \u2022 ', style: TextStyle(color: AppColors.coolGray)),
+                                              Expanded(
+                                                child: Text(
+                                                  product.condition,
+                                                  style: TextStyle(color: AppColors.coolGray),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          // Price in its own row
+                                          Text(
+                                            'RM ${product.price.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: AppColors.mutedTeal,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                          title: Text(
-                            product.name,
-                            style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.coolGray),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                product.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: AppColors.coolGray.withAlpha(179)),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.star, size: 16, color: Colors.amber[700]),
-                                  Text(' ${product.rating} \u2022 ', style: TextStyle(color: AppColors.coolGray)),
-                                  Text(product.condition, style: TextStyle(color: AppColors.coolGray)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          trailing: Text(
-                            'RM ${product.price.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: AppColors.mutedTeal,
-                            ),
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductDetailsPage(product: product),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
