@@ -190,13 +190,9 @@ class SearchResultsPageState extends State<SearchResultsPage> {
         }
       }
       
-      // Sort by createdAt if available, otherwise by name
+      // Sort by listedDate, newest first
       products.sort((a, b) {
-        if (a.createdAt != null && b.createdAt != null) {
-          return b.createdAt!.compareTo(a.createdAt!); // Newest first
-        } else {
-          return a.name.compareTo(b.name); // Alphabetical fallback
-        }
+        return b.listedDate.compareTo(a.listedDate); // Newest first
       });
       
       setState(() {

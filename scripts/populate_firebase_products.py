@@ -203,7 +203,7 @@ def generate_product_data():
                 "condition": condition,
                 "stock": item["stock"],
                 "adBoostPrice": ad_boost_price,
-                "createdAt": firestore.SERVER_TIMESTAMP  # Use server timestamp for accurate time
+                "listedDate": firestore.SERVER_TIMESTAMP  # Use server timestamp for accurate time
             }
             
             products.append(product)
