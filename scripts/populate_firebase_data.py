@@ -71,7 +71,7 @@ def generate_users(num_users=20):
         role = roles[i-1]
         
         # Profile images from Unsplash
-        profile_image_url = f"https://images.unsplash.com/photo-{random.randint(1500000000, 1600000000)}-{uuid.uuid4().hex[:8]}?w=200"
+        profile_image_url = "https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg"
         
         user = {
             "uid": uid,
