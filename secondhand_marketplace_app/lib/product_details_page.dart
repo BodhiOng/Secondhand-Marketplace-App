@@ -40,35 +40,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
 
   bool _isLoadingSeller = true;
 
-  // Sample reviews
-  final List<Map<String, dynamic>> _reviews = [
-    {
-      'username': 'Alice',
-      'profilePic': 'https://picsum.photos/id/1001/200/200',
-      'rating': 5.0,
-      'date': '2 weeks ago',
-      'text':
-          'Excellent product, exactly as described. Fast shipping and great packaging!',
-      'image': 'https://picsum.photos/id/20/200/200',
-    },
-    {
-      'username': 'Bob',
-      'profilePic': 'https://picsum.photos/id/1002/200/200',
-      'rating': 4.0,
-      'date': '1 month ago',
-      'text': 'Good quality product, but shipping took longer than expected.',
-      'image': null,
-    },
-    {
-      'username': 'Carol',
-      'profilePic': 'https://picsum.photos/id/1003/200/200',
-      'rating': 4.5,
-      'date': '2 months ago',
-      'text':
-          'Very satisfied with my purchase. Would buy from this seller again.',
-      'image': 'https://picsum.photos/id/30/200/200',
-    },
-  ];
+  // Reviews data
+  List<Map<String, dynamic>> _reviews = [];
+  bool _isLoadingReviews = true;
+  double _productRating = 0.0;
+  int _reviewCount = 0;
 
   @override
   void initState() {
@@ -80,6 +56,114 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
 
     // Fetch seller information
     _fetchSellerInfo();
+    
+    // Fetch product reviews
+    _fetchProductReviews();
+  }
+  
+  // Fetch reviews for this product from Firestore
+  Future<void> _fetchProductReviews() async {
+    try {
+      setState(() {
+        _isLoadingReviews = true;
+      });
+      
+      // Query reviews collection for this product
+      final QuerySnapshot reviewsSnapshot = await _firestore
+          .collection('reviews')
+          .where('productId', isEqualTo: widget.product.id)
+          .get();
+      
+      // Calculate average rating and count reviews
+      if (reviewsSnapshot.docs.isNotEmpty) {
+        double totalRating = 0;
+        final List<Map<String, dynamic>> fetchedReviews = [];
+        
+        for (var doc in reviewsSnapshot.docs) {
+          final reviewData = doc.data() as Map<String, dynamic>;
+          
+          // Add rating to total for average calculation
+          if (reviewData.containsKey('rating')) {
+            totalRating += (reviewData['rating'] as num).toDouble();
+          }
+          
+          // Fetch reviewer information
+          final String reviewerId = reviewData['reviewerId'] ?? '';
+          String username = 'Anonymous';
+          String profileImageUrl = 'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
+          
+          if (reviewerId.isNotEmpty) {
+            try {
+              final userDoc = await _firestore.collection('users').doc(reviewerId).get();
+              if (userDoc.exists) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                username = userData['username'] ?? 'User';
+                profileImageUrl = userData['profileImageUrl'] ?? 'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
+              }
+            } catch (e) {
+              debugPrint('Error fetching reviewer info: $e');
+            }
+          }
+          
+          // Format the review date
+          String formattedDate = 'Recently';
+          if (reviewData['date'] != null) {
+            final timestamp = reviewData['date'] as Timestamp;
+            final reviewDate = timestamp.toDate();
+            final now = DateTime.now();
+            final difference = now.difference(reviewDate);
+            
+            if (difference.inDays < 1) {
+              formattedDate = 'Today';
+            } else if (difference.inDays < 2) {
+              formattedDate = 'Yesterday';
+            } else if (difference.inDays < 7) {
+              formattedDate = '${difference.inDays} days ago';
+            } else if (difference.inDays < 30) {
+              formattedDate = '${(difference.inDays / 7).floor()} weeks ago';
+            } else if (difference.inDays < 365) {
+              formattedDate = '${(difference.inDays / 30).floor()} months ago';
+            } else {
+              formattedDate = '${(difference.inDays / 365).floor()} years ago';
+            }
+          }
+          
+          // Add review to the list
+          fetchedReviews.add({
+            'id': reviewData['id'] ?? '',
+            'username': username,
+            'profilePic': profileImageUrl,
+            'rating': (reviewData['rating'] as num).toDouble(),
+            'date': formattedDate,
+            'text': reviewData['text'] ?? 'No comment provided',
+            'image': reviewData['imageUrl'],
+          });
+        }
+        
+        // Calculate average rating
+        final double averageRating = totalRating / reviewsSnapshot.docs.length;
+        
+        setState(() {
+          _reviews = fetchedReviews;
+          _productRating = double.parse(averageRating.toStringAsFixed(1));
+          _reviewCount = reviewsSnapshot.docs.length;
+          _isLoadingReviews = false;
+        });
+      } else {
+        // No reviews found
+        setState(() {
+          _reviews = [];
+          _productRating = 0.0;
+          _reviewCount = 0;
+          _isLoadingReviews = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching product reviews: $e');
+      setState(() {
+        _isLoadingReviews = false;
+      });
+    }
   }
 
   // Fetch seller information from Firestore
@@ -126,14 +210,9 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     super.dispose();
   }
 
-  // Calculate average rating from reviews
+  // Get the average rating calculated from reviews
   double get _averageRating {
-    if (_reviews.isEmpty) return 0;
-    double total = _reviews.fold(
-      0,
-      (accumulator, review) => accumulator + (review['rating'] as double),
-    );
-    return total / _reviews.length;
+    return _productRating;
   }
 
   // Build star rating widget
@@ -366,23 +445,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.access_time,
-                                                    size: 14,
-                                                    color: AppColors.coolGray,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    'Response time: ${_seller["averageResponseTime"]} minutes',
-                                                    style: TextStyle(
-                                                      color: AppColors.coolGray,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+
                                             ],
                                           ),
                                         ),
@@ -450,7 +513,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                           _buildRatingStars(_averageRating),
                           const SizedBox(width: 8),
                           Text(
-                            '${_averageRating.toStringAsFixed(1)} (${_reviews.length} reviews)',
+                            '${_averageRating.toStringAsFixed(1)} ($_reviewCount reviews)',
                             style: TextStyle(color: AppColors.coolGray),
                           ),
                         ],
@@ -458,9 +521,28 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       const SizedBox(height: 16),
 
                       // Reviews List
-                      ..._reviews
-                          .take(3)
-                          .map((review) => _buildReviewItem(review)),
+                      _isLoadingReviews
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.mutedTeal,
+                            ),
+                          )
+                        : _reviews.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No reviews yet',
+                                  style: TextStyle(
+                                    color: AppColors.coolGray,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              )
+                            : Column(
+                                children: _reviews
+                                    .take(3)
+                                    .map((review) => _buildReviewItem(review))
+                                    .toList(),
+                              ),
 
                       // Bottom padding to ensure content isn't hidden behind the action buttons
                       const SizedBox(height: 80),
