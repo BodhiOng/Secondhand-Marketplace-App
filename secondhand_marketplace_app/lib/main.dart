@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:secondhand_marketplace_app/constants.dart';
-import 'landing_page.dart';
+import 'firebase_options.dart';
+import 'auth_wrapper.dart';
 
 void main() async {
   // Initialize Flutter bindings
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase with a fallback to prevent errors during development
+  // Initialize Firebase with proper options
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     debugPrint('Firebase initialized successfully');
   } catch (e) {
     debugPrint('Failed to initialize Firebase: $e');
@@ -52,7 +55,7 @@ class MyApp extends StatelessWidget {
           },
         ),
       ),
-      home: const LandingPage(), // Will navigate to MyHomePage after animation
+      home: const AuthWrapper(), // Handles authentication state and routing
     );
   }
 }
