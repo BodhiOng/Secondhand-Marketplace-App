@@ -20,13 +20,11 @@ class _ReportItemPageState extends State<ReportItemPage> {
   File? _imageFile;
   final _imagePicker = ImagePicker();
   final List<String> _reportReasons = [
-    'Select a reason',
-    'Counterfeit or fake item',
-    'Prohibited or illegal item',
-    'Incorrect description',
-    'Scam or fraudulent listing',
-    'Offensive content',
-    'Other',
+    "Counterfeit item",
+    "Inappropriate content",
+    "Misleading description",
+    "Prohibited item",
+    "Scam",
   ];
   String _selectedReason = 'Select a reason';
 

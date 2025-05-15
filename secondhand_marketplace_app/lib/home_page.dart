@@ -71,11 +71,11 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     try {
-      // Query products collection, order by adBoostPrice in descending order, limit to 10
+      // Query products collection, order by adBoost in descending order, limit to 10
       final QuerySnapshot snapshot =
           await _firestore
               .collection('products')
-              .orderBy('adBoostPrice', descending: true)
+              .orderBy('adBoost', descending: true)
               .limit(10)
               .get();
 
@@ -479,7 +479,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                           ),
                                         ),
                                         // Ad boost badge
-                                        if (product.adBoostPrice > 0)
+                                        if (product.adBoost > 0)
                                           Positioned(
                                             top: 8,
                                             right: 8,

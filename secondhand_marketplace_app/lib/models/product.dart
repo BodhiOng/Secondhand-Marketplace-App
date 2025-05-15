@@ -15,7 +15,7 @@ class Product {
   final String condition;
   final DateTime listedDate;
   final int stock;
-  final double adBoostPrice;
+  final double adBoost;
 
   Product({
     required this.id,
@@ -31,9 +31,9 @@ class Product {
     required this.condition,
     required this.listedDate,
     required this.stock,
-    required this.adBoostPrice,
+    required this.adBoost,
   });
-  
+
   // Factory constructor to create a Product from Firestore data
   factory Product.fromFirestore(Map<String, dynamic> data, String id) {
     return Product(
@@ -42,17 +42,24 @@ class Product {
       description: data['description'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       imageUrl: data['imageUrl'] ?? '',
-      additionalImages: data['additionalImages'] != null 
-          ? List<String>.from(data['additionalImages']) 
-          : null,
+      additionalImages:
+          data['additionalImages'] != null
+              ? List<String>.from(data['additionalImages'])
+              : null,
       category: data['category'] ?? '',
       sellerId: data['sellerId'] ?? '',
       seller: null, // We'll fetch this separately if needed
-      rating: data['rating'] != null ? (data['rating'] as num).toDouble() : null, // Load rating from Firestore
+      rating:
+          data['rating'] != null
+              ? (data['rating'] as num).toDouble()
+              : null, // Load rating from Firestore
       condition: data['condition'] ?? '',
-      listedDate: data['listedDate'] != null ? (data['listedDate'] as Timestamp).toDate() : DateTime.now(),
+      listedDate:
+          data['listedDate'] != null
+              ? (data['listedDate'] as Timestamp).toDate()
+              : DateTime.now(),
       stock: data['stock'] ?? 0,
-      adBoostPrice: (data['adBoostPrice'] ?? 0).toDouble(),
+      adBoost: (data['adBoost'] ?? 0).toDouble(),
     );
   }
 }

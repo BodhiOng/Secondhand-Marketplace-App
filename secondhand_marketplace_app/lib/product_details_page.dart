@@ -20,24 +20,24 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   bool _showBargainSheet = false;
   double _bargainPrice = 0;
   final TextEditingController _bargainController = TextEditingController();
-  
+
   // Calculate minimum price (70% of product price)
   double get _minimumPrice => widget.product.price * 0.7;
 
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   // Seller data
   Map<String, dynamic> _seller = {
     'username': 'Loading...',
     'address': 'Loading...',
-    'averageResponseTime': 'Loading...',
+    
     'profileImageUrl': 'https://picsum.photos/id/1005/200/200', // Default image
     'rating': 0.0,
     'sales': 0,
     'joinDate': 'Loading...',
   };
-  
+
   bool _isLoadingSeller = true;
 
   // Sample reviews
@@ -47,7 +47,8 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
       'profilePic': 'https://picsum.photos/id/1001/200/200',
       'rating': 5.0,
       'date': '2 weeks ago',
-      'text': 'Excellent product, exactly as described. Fast shipping and great packaging!',
+      'text':
+          'Excellent product, exactly as described. Fast shipping and great packaging!',
       'image': 'https://picsum.photos/id/20/200/200',
     },
     {
@@ -63,7 +64,8 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
       'profilePic': 'https://picsum.photos/id/1003/200/200',
       'rating': 4.5,
       'date': '2 months ago',
-      'text': 'Very satisfied with my purchase. Would buy from this seller again.',
+      'text':
+          'Very satisfied with my purchase. Would buy from this seller again.',
       'image': 'https://picsum.photos/id/30/200/200',
     },
   ];
@@ -71,27 +73,32 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _bargainPrice = widget.product.price * 0.8; // Set initial bargain price to 80% of original
+    _bargainPrice =
+        widget.product.price *
+        0.8; // Set initial bargain price to 80% of original
     _bargainController.text = _bargainPrice.toStringAsFixed(2);
-    
+
     // Fetch seller information
     _fetchSellerInfo();
   }
-  
+
   // Fetch seller information from Firestore
   Future<void> _fetchSellerInfo() async {
     try {
       final String sellerId = widget.product.sellerId;
-      final DocumentSnapshot userDoc = await _firestore.collection('users').doc(sellerId).get();
-      
+      final DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(sellerId).get();
+
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
         setState(() {
           _seller = {
             'username': userData['username'] ?? 'Unknown Seller',
             'address': userData['address'] ?? 'Location not available',
-            'averageResponseTime': userData['averageResponseTime'] ?? '< 24 hours',
-            'profileImageUrl': userData['profileImageUrl'] ?? 'https://picsum.photos/id/1005/200/200',
+            
+            'profileImageUrl':
+                userData['profileImageUrl'] ??
+                'https://picsum.photos/id/1005/200/200',
             'rating': userData['rating'] ?? 4.0,
             'sales': userData['sales'] ?? 0,
             'joinDate': userData['joinDate'] ?? 'New seller',
@@ -122,11 +129,12 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   // Calculate average rating from reviews
   double get _averageRating {
     if (_reviews.isEmpty) return 0;
-    double total = _reviews.fold(0, (accumulator, review) => accumulator + (review['rating'] as double));
+    double total = _reviews.fold(
+      0,
+      (accumulator, review) => accumulator + (review['rating'] as double),
+    );
     return total / _reviews.length;
   }
-  
-
 
   // Build star rating widget
   Widget _buildRatingStars(double rating) {
@@ -171,12 +179,12 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
       condition: widget.product.condition,
       listedDate: widget.product.listedDate,
       stock: widget.product.stock,
-      adBoostPrice: widget.product.adBoostPrice,
+      adBoost: widget.product.adBoost,
     );
-    
+
     // Create a cart item with the bargained product
     final cartItem = CartItem(product: bargainedProduct);
-    
+
     // Show confirmation
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -187,10 +195,10 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
         backgroundColor: AppColors.mutedTeal,
       ),
     );
-    
+
     // Hide the bottom sheet
     _hideBargainBottomSheet();
-    
+
     // Navigate to checkout page with the bargained item
     Navigator.push(
       context,
@@ -253,7 +261,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     fit: BoxFit.cover,
                   ),
                 ),
-                
+
                 // Product Info
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -270,7 +278,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Price and Stock
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -293,11 +301,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Divider
                       Divider(color: AppColors.coolGray.withAlpha(77)),
                       const SizedBox(height: 16),
-                      
+
                       // Seller Information Section
                       Container(
                         margin: const EdgeInsets.only(top: 16),
@@ -306,77 +314,90 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                           color: AppColors.deepSlateGray,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: _isLoadingSeller
-                          ? Center(child: CircularProgressIndicator(color: AppColors.mutedTeal))
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Seller Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.coolGray,
+                        child:
+                            _isLoadingSeller
+                                ? Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.mutedTeal,
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
+                                )
+                                : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Seller Profile Pic
-                                    CircleAvatar(
-                                      radius: 30,
-                                      backgroundImage: NetworkImage(_seller['profileImageUrl']),
+                                    Text(
+                                      'Seller Information',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.coolGray,
+                                      ),
                                     ),
-                                    const SizedBox(width: 16),
-                                    
-                                    // Seller Details
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            _seller['username'],
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: AppColors.coolGray,
-                                            ),
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        // Seller Profile Pic
+                                        CircleAvatar(
+                                          radius: 30,
+                                          backgroundImage: NetworkImage(
+                                            _seller['profileImageUrl'],
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            _seller['address'],
-                                            style: TextStyle(color: AppColors.coolGray),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
+                                        ),
+                                        const SizedBox(width: 16),
+
+                                        // Seller Details
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Icon(Icons.access_time, size: 14, color: AppColors.coolGray),
-                                              const SizedBox(width: 4),
                                               Text(
-                                                'Response time: ${_seller["averageResponseTime"]} minutes',
-                                                style: TextStyle(color: AppColors.coolGray, fontSize: 12),
+                                                _seller['username'],
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: AppColors.coolGray,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                _seller['address'],
+                                                style: TextStyle(
+                                                  color: AppColors.coolGray,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time,
+                                                    size: 14,
+                                                    color: AppColors.coolGray,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Response time: ${_seller["averageResponseTime"]} minutes',
+                                                    style: TextStyle(
+                                                      color: AppColors.coolGray,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                    
-
+                                    const SizedBox(height: 16),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                
-
-                              ],
-                            ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Divider
                       Divider(color: AppColors.coolGray.withAlpha(77)),
                       const SizedBox(height: 16),
-                      
+
                       // Description
                       Text(
                         'Description',
@@ -396,11 +417,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Divider
                       Divider(color: AppColors.coolGray.withAlpha(77)),
                       const SizedBox(height: 16),
-                      
+
                       // Reviews Header
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -422,7 +443,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                           ),
                         ],
                       ),
-                      
+
                       // Rating Summary
                       Row(
                         children: [
@@ -435,10 +456,12 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       // Reviews List
-                      ..._reviews.take(3).map((review) => _buildReviewItem(review)),
-                      
+                      ..._reviews
+                          .take(3)
+                          .map((review) => _buildReviewItem(review)),
+
                       // Bottom padding to ensure content isn't hidden behind the action buttons
                       const SizedBox(height: 80),
                     ],
@@ -447,7 +470,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
               ],
             ),
           ),
-          
+
           // Bottom Action Buttons
           Positioned(
             bottom: 0,
@@ -477,7 +500,8 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                           'id': widget.product.id,
                           'name': widget.product.seller,
                           'profilePic': _seller['profilePic'],
-                          'lastMessage': 'Hello, I\'m interested in your ${widget.product.name}. Is it still available?',
+                          'lastMessage':
+                              'Hello, I\'m interested in your ${widget.product.name}. Is it still available?',
                           'timestamp': DateTime.now(),
                           'unread': 0,
                           'product': {
@@ -485,7 +509,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                             'imageUrl': widget.product.imageUrl,
                           },
                         };
-                        
+
                         // Navigate to chat detail page for this product
                         Navigator.push(
                           context,
@@ -504,7 +528,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  
+
                   // Add to Cart Button
                   Expanded(
                     flex: 2,
@@ -512,7 +536,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       onPressed: () {
                         // Create a cart item with the current product
                         final cartItem = CartItem(product: widget.product);
-                        
+
                         // Show confirmation
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -529,7 +553,9 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => CheckoutPage(cartItems: [cartItem]),
+                                    builder:
+                                        (context) =>
+                                            CheckoutPage(cartItems: [cartItem]),
                                   ),
                                 );
                               },
@@ -547,7 +573,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  
+
                   // Buy Now Button
                   Expanded(
                     flex: 2,
@@ -555,12 +581,14 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       onPressed: () {
                         // Create a cart item with the current product
                         final cartItem = CartItem(product: widget.product);
-                        
+
                         // Navigate to checkout page with the item
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => CheckoutPage(cartItems: [cartItem]),
+                            builder:
+                                (context) =>
+                                    CheckoutPage(cartItems: [cartItem]),
                           ),
                         );
                       },
@@ -573,7 +601,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  
+
                   // Bargain Button
                   Expanded(
                     flex: 2,
@@ -591,7 +619,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
               ),
             ),
           ),
-          
+
           // Bargain Bottom Sheet
           if (_showBargainSheet)
             Positioned(
@@ -643,14 +671,18 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: _bargainController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       style: const TextStyle(color: Colors.white),
                       autofocus: true,
                       decoration: InputDecoration(
                         prefixText: 'RM ',
                         prefixStyle: TextStyle(color: AppColors.mutedTeal),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: AppColors.mutedTeal.withAlpha(77)),
+                          borderSide: BorderSide(
+                            color: AppColors.mutedTeal.withAlpha(77),
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -661,7 +693,9 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       onChanged: (value) {
                         if (value.isNotEmpty) {
                           setState(() {
-                            _bargainPrice = double.tryParse(value) ?? widget.product.price * 0.8;
+                            _bargainPrice =
+                                double.tryParse(value) ??
+                                widget.product.price * 0.8;
                           });
                         }
                       },
@@ -675,12 +709,17 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _bargainPrice >= _minimumPrice ? _submitBargain : null,
+                        onPressed:
+                            _bargainPrice >= _minimumPrice
+                                ? _submitBargain
+                                : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mutedTeal,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          disabledBackgroundColor: AppColors.coolGray.withAlpha(77),
+                          disabledBackgroundColor: AppColors.coolGray.withAlpha(
+                            77,
+                          ),
                         ),
                         child: const Text('Send Bargain Request'),
                       ),
@@ -709,7 +748,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                 backgroundImage: NetworkImage(review['profilePic']),
               ),
               const SizedBox(width: 8),
-              
+
               // Reviewer Name
               Text(
                 review['username'],
@@ -719,28 +758,28 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                 ),
               ),
               const Spacer(),
-              
+
               // Review Date
               Text(
                 review['date'],
-                style: TextStyle(color: AppColors.coolGray.withAlpha(179), fontSize: 12),
+                style: TextStyle(
+                  color: AppColors.coolGray.withAlpha(179),
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          
+
           // Rating
           _buildRatingStars(review['rating']),
           const SizedBox(height: 4),
-          
+
           // Review Text
-          Text(
-            review['text'],
-            style: TextStyle(color: AppColors.coolGray),
-          ),
-          
+          Text(review['text'], style: TextStyle(color: AppColors.coolGray)),
+
           // Review Image (if any)
-          if (review['image'] != null) ...[  
+          if (review['image'] != null) ...[
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -752,7 +791,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
               ),
             ),
           ],
-          
+
           const SizedBox(height: 8),
           Divider(color: AppColors.coolGray.withAlpha(77)),
         ],

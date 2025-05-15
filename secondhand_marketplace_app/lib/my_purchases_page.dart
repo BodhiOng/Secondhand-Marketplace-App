@@ -16,7 +16,7 @@ class MyPurchasesPage extends StatefulWidget {
 
 class _MyPurchasesPageState extends State<MyPurchasesPage> {
   int _selectedIndex = 1; // Set to 1 for My Purchases tab
-  
+
   // Sample purchase orders for demonstration
   final List<PurchaseOrder> _purchaseOrders = [
     PurchaseOrder(
@@ -24,7 +24,8 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       product: Product(
         id: '1',
         name: 'iPhone 13 Pro',
-        description: 'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
+        description:
+            'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
         price: 699.99,
         imageUrl: 'https://picsum.photos/id/1/200/200',
         category: 'Electronics',
@@ -34,7 +35,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 3)),
         stock: 3,
-        adBoostPrice: 50.0,
+        adBoost: 50.0,
       ),
       quantity: 1,
       price: 699.99,
@@ -46,7 +47,8 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       product: Product(
         id: '2',
         name: 'Leather Sofa',
-        description: 'Brown leather sofa, 3-seater, 2 years old. Very comfortable.',
+        description:
+            'Brown leather sofa, 3-seater, 2 years old. Very comfortable.',
         price: 450.00,
         imageUrl: 'https://picsum.photos/id/2/200/200',
         category: 'Furniture',
@@ -56,7 +58,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         condition: 'Excellent',
         listedDate: DateTime.now().subtract(const Duration(days: 5)),
         stock: 1,
-        adBoostPrice: 100.0,
+        adBoost: 100.0,
       ),
       quantity: 1,
       price: 450.00,
@@ -68,7 +70,8 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       product: Product(
         id: '3',
         name: 'Nike Air Jordan',
-        description: 'Nike Air Jordan 1, size US 10, worn only twice. Original box included.',
+        description:
+            'Nike Air Jordan 1, size US 10, worn only twice. Original box included.',
         price: 180.00,
         imageUrl: 'https://picsum.photos/id/3/200/200',
         category: 'Clothing',
@@ -78,7 +81,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         condition: 'Like New',
         listedDate: DateTime.now().subtract(const Duration(days: 1)),
         stock: 1,
-        adBoostPrice: 75.0,
+        adBoost: 75.0,
       ),
       quantity: 1,
       price: 180.00,
@@ -90,7 +93,8 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       product: Product(
         id: '4',
         name: 'Harry Potter Collection',
-        description: 'Complete set of Harry Potter books (7 books), hardcover edition.',
+        description:
+            'Complete set of Harry Potter books (7 books), hardcover edition.',
         price: 120.00,
         imageUrl: 'https://picsum.photos/id/4/200/200',
         category: 'Books',
@@ -100,7 +104,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 7)),
         stock: 2,
-        adBoostPrice: 25.0,
+        adBoost: 25.0,
       ),
       quantity: 1,
       price: 120.00,
@@ -116,7 +120,9 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
       // Navigate directly to HomePage
       Navigator.pushReplacement(
         context,
-        DarkPageReplaceRoute(page: const MyHomePage(title: 'Secondhand Marketplace')),
+        DarkPageReplaceRoute(
+          page: const MyHomePage(title: 'Secondhand Marketplace'),
+        ),
       );
     } else if (index == 1) {
       // Already on My Purchases page, just update index
@@ -142,44 +148,42 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
   void _cancelOrder(PurchaseOrder order) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Cancel Order',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        content: Text(
-          'Are you sure you want to cancel this order?',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'No',
-              style: TextStyle(color: AppColors.mutedTeal),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.deepSlateGray,
+            title: Text(
+              'Cancel Order',
+              style: TextStyle(color: AppColors.coolGray),
             ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                order.status = OrderStatus.cancelled;
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Order cancelled successfully'),
-                  backgroundColor: AppColors.warmCoral,
+            content: Text(
+              'Are you sure you want to cancel this order?',
+              style: TextStyle(color: AppColors.coolGray),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('No', style: TextStyle(color: AppColors.mutedTeal)),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    order.status = OrderStatus.cancelled;
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Order cancelled successfully'),
+                      backgroundColor: AppColors.warmCoral,
+                    ),
+                  );
+                },
+                child: Text(
+                  'Yes',
+                  style: TextStyle(color: AppColors.warmCoral),
                 ),
-              );
-            },
-            child: Text(
-              'Yes',
-              style: TextStyle(color: AppColors.warmCoral),
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -187,40 +191,41 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
   void _markAsReceived(PurchaseOrder order) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Confirm Receipt',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        content: Text(
-          'Confirm that you have received this order? This will release payment to the seller.',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                order.status = OrderStatus.received;
-              });
-              Navigator.pop(context);
-              // Show rating dialog
-              _showRatingDialog(order);
-            },
-            child: Text(
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.deepSlateGray,
+            title: Text(
               'Confirm Receipt',
-              style: TextStyle(color: AppColors.mutedTeal),
+              style: TextStyle(color: AppColors.coolGray),
             ),
+            content: Text(
+              'Confirm that you have received this order? This will release payment to the seller.',
+              style: TextStyle(color: AppColors.coolGray),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: AppColors.mutedTeal),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    order.status = OrderStatus.received;
+                  });
+                  Navigator.pop(context);
+                  // Show rating dialog
+                  _showRatingDialog(order);
+                },
+                child: Text(
+                  'Confirm Receipt',
+                  style: TextStyle(color: AppColors.mutedTeal),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -231,102 +236,106 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Rate & Review',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'How would you rate this product?',
-                style: TextStyle(color: AppColors.coolGray),
-              ),
-              const SizedBox(height: 16),
-              // Star rating
-              StatefulBuilder(
-                builder: (context, setStateDialog) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        icon: Icon(
-                          index < rating.floor()
-                              ? Icons.star
-                              : (index == rating.floor() && rating % 1 > 0)
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: AppColors.deepSlateGray,
+            title: Text(
+              'Rate & Review',
+              style: TextStyle(color: AppColors.coolGray),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'How would you rate this product?',
+                    style: TextStyle(color: AppColors.coolGray),
+                  ),
+                  const SizedBox(height: 16),
+                  // Star rating
+                  StatefulBuilder(
+                    builder: (context, setStateDialog) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(5, (index) {
+                          return IconButton(
+                            icon: Icon(
+                              index < rating.floor()
+                                  ? Icons.star
+                                  : (index == rating.floor() && rating % 1 > 0)
                                   ? Icons.star_half
                                   : Icons.star_border,
-                          color: AppColors.softLemonYellow,
-                          size: 32,
-                        ),
-                        onPressed: () {
-                          setStateDialog(() {
-                            rating = index + 1.0;
-                          });
-                        },
+                              color: AppColors.softLemonYellow,
+                              size: 32,
+                            ),
+                            onPressed: () {
+                              setStateDialog(() {
+                                rating = index + 1.0;
+                              });
+                            },
+                          );
+                        }),
                       );
-                    }),
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Review text field
+                  TextField(
+                    controller: reviewController,
+                    maxLines: 3,
+                    style: TextStyle(color: AppColors.coolGray),
+                    decoration: InputDecoration(
+                      hintText: 'Write your review here...',
+                      hintStyle: TextStyle(
+                        color: AppColors.coolGray.withAlpha(150),
+                      ),
+                      filled: true,
+                      fillColor: AppColors.charcoalBlack,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.coolGray),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.mutedTeal),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Skip',
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    order.rating = rating;
+                    order.review =
+                        reviewController.text.isNotEmpty
+                            ? reviewController.text
+                            : null;
+                  });
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Thank you for your review!'),
+                      backgroundColor: AppColors.mutedTeal,
+                    ),
                   );
                 },
-              ),
-              const SizedBox(height: 16),
-              // Review text field
-              TextField(
-                controller: reviewController,
-                maxLines: 3,
-                style: TextStyle(color: AppColors.coolGray),
-                decoration: InputDecoration(
-                  hintText: 'Write your review here...',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
-                  filled: true,
-                  fillColor: AppColors.charcoalBlack,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.coolGray),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.mutedTeal),
-                  ),
+                child: Text(
+                  'Submit',
+                  style: TextStyle(color: AppColors.mutedTeal),
                 ),
               ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Skip',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                order.rating = rating;
-                order.review = reviewController.text.isNotEmpty
-                    ? reviewController.text
-                    : null;
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Thank you for your review!'),
-                  backgroundColor: AppColors.mutedTeal,
-                ),
-              );
-            },
-            child: Text(
-              'Submit',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -341,15 +350,13 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
           style: TextStyle(color: AppColors.coolGray),
         ),
       ),
-      body: _purchaseOrders.isEmpty
-          ? _buildEmptyPurchases()
-          : _buildPurchasesList(),
+      body:
+          _purchaseOrders.isEmpty
+              ? _buildEmptyPurchases()
+              : _buildPurchasesList(),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag_outlined),
             label: 'My Purchases',
@@ -445,7 +452,10 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
             children: [
               // Order header with ID and date
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.charcoalBlack.withAlpha(100),
                   borderRadius: const BorderRadius.only(
@@ -519,9 +529,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                             children: [
                               Text(
                                 'Qty: ${order.quantity}',
-                                style: TextStyle(
-                                  color: AppColors.coolGray,
-                                ),
+                                style: TextStyle(color: AppColors.coolGray),
                               ),
                               Text(
                                 'RM ${order.totalPrice.toStringAsFixed(2)}',
@@ -558,9 +566,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                           children: [
                             Text(
                               'Status: ',
-                              style: TextStyle(
-                                color: AppColors.coolGray,
-                              ),
+                              style: TextStyle(color: AppColors.coolGray),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -593,16 +599,16 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                               const SizedBox(width: 4),
                               Text(
                                 order.rating!.toStringAsFixed(1),
-                                style: TextStyle(
-                                  color: AppColors.coolGray,
-                                ),
+                                style: TextStyle(color: AppColors.coolGray),
                               ),
                             ],
                           ),
                       ],
                     ),
                     // Action buttons
-                    if (order.canCancel || order.canMarkAsReceived || order.canRate)
+                    if (order.canCancel ||
+                        order.canMarkAsReceived ||
+                        order.canRate)
                       Padding(
                         padding: const EdgeInsets.only(top: 16),
                         child: Row(
@@ -628,7 +634,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                                 ),
                               ),
                             // Mark as received button
-                            if (order.canMarkAsReceived) ...[  
+                            if (order.canMarkAsReceived) ...[
                               const SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: () => _markAsReceived(order),
@@ -649,7 +655,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                               ),
                             ],
                             // Rate button
-                            if (order.canRate) ...[  
+                            if (order.canRate) ...[
                               const SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: () => _showRatingDialog(order),
@@ -665,7 +671,9 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                                 ),
                                 child: Text(
                                   'Rate & Review',
-                                  style: TextStyle(color: AppColors.charcoalBlack),
+                                  style: TextStyle(
+                                    color: AppColors.charcoalBlack,
+                                  ),
                                 ),
                               ),
                             ],

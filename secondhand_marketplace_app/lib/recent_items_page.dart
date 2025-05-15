@@ -124,7 +124,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 1)),
         stock: 2,
-        adBoostPrice: 100.0,
+        adBoost: 100.0,
       ),
       Product(
         id: '6',
@@ -139,7 +139,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 2)),
         stock: 1,
-        adBoostPrice: 30.0,
+        adBoost: 30.0,
       ),
       Product(
         id: '7',
@@ -154,7 +154,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         condition: 'Like New',
         listedDate: DateTime.now().subtract(const Duration(days: 3)),
         stock: 3,
-        adBoostPrice: 40.0,
+        adBoost: 40.0,
       ),
       Product(
         id: '8',
@@ -170,7 +170,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 4)),
         stock: 1,
-        adBoostPrice: 60.0,
+        adBoost: 60.0,
       ),
       Product(
         id: '9',
@@ -186,7 +186,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         condition: 'New',
         listedDate: DateTime.now().subtract(const Duration(days: 5)),
         stock: 4,
-        adBoostPrice: 70.0,
+        adBoost: 70.0,
       ),
     ];
   }
