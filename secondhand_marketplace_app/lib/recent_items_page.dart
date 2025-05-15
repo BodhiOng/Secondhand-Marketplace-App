@@ -24,6 +24,9 @@ class RecentItemsPageState extends State<RecentItemsPage> {
   bool _isFirebaseAvailable = true;
   List<Product> _recentProducts = [];
   bool _isLoading = true;
+  
+  // Map to store calculated ratings from reviews collection
+  final Map<String, double> _calculatedRatings = {};
 
   // Sample conditions
   final List<String> _conditions = [
@@ -92,6 +95,11 @@ class RecentItemsPageState extends State<RecentItemsPage> {
             final data = doc.data() as Map<String, dynamic>;
             return Product.fromFirestore(data, doc.id);
           }).toList();
+      
+      // Fetch ratings for each product from reviews collection
+      for (var product in products) {
+        await _fetchProductRating(product);
+      }
 
       setState(() {
         _recentProducts = products;
@@ -105,6 +113,34 @@ class RecentItemsPageState extends State<RecentItemsPage> {
         // If there's an error, use sample data
         _recentProducts = _getSampleProducts();
       });
+    }
+  }
+  
+  // Fetch and calculate average rating for a product from reviews collection
+  Future<void> _fetchProductRating(Product product) async {
+    try {
+      final QuerySnapshot reviewsSnapshot = await _firestore!
+          .collection('reviews')
+          .where('productId', isEqualTo: product.id)
+          .get();
+      
+      if (reviewsSnapshot.docs.isNotEmpty) {
+        double totalRating = 0;
+        for (var doc in reviewsSnapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('rating')) {
+            totalRating += (data['rating'] as num).toDouble();
+          }
+        }
+        
+        // Calculate average rating
+        double averageRating = totalRating / reviewsSnapshot.docs.length;
+        // Store calculated rating in the map
+        _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
+      }
+    } catch (e) {
+      debugPrint('Error fetching ratings for product ${product.id}: $e');
+      // Keep the default rating from the product document if there's an error
     }
   }
 
@@ -457,7 +493,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
                                               color: Colors.amber[700],
                                             ),
                                             Text(
-                                              ' ${product.rating} \u2022 ',
+                                              ' ${_calculatedRatings.containsKey(product.id) ? _calculatedRatings[product.id]!.toString() : product.rating.toString()} \u2022 ',
                                               style: TextStyle(
                                                 color: AppColors.coolGray,
                                               ),

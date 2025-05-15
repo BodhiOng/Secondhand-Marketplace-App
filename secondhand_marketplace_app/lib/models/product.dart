@@ -11,7 +11,7 @@ class Product {
   final String category;
   final String sellerId;
   final String? seller; // For backward compatibility
-  final double? rating;
+  final double rating;
   final String condition;
   final DateTime listedDate;
   final int stock;
@@ -27,7 +27,7 @@ class Product {
     required this.category,
     required this.sellerId,
     this.seller,
-    this.rating,
+    this.rating = 0.0,
     required this.condition,
     required this.listedDate,
     required this.stock,
@@ -42,17 +42,11 @@ class Product {
       description: data['description'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       imageUrl: data['imageUrl'] ?? '',
-      additionalImages:
-          data['additionalImages'] != null
-              ? List<String>.from(data['additionalImages'])
-              : null,
+      additionalImages: null, // Field doesn't exist in database
       category: data['category'] ?? '',
       sellerId: data['sellerId'] ?? '',
       seller: null, // We'll fetch this separately if needed
-      rating:
-          data['rating'] != null
-              ? (data['rating'] as num).toDouble()
-              : null, // Load rating from Firestore
+      rating: 0.0, // Default rating, will be calculated from reviews
       condition: data['condition'] ?? '',
       listedDate:
           data['listedDate'] != null

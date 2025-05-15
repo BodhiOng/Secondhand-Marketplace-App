@@ -26,6 +26,9 @@ class SearchResultsPageState extends State<SearchResultsPage> {
   bool _isFirebaseAvailable = true;
   List<Product> _searchResults = [];
   bool _isLoading = true;
+  
+  // Map to store calculated ratings from reviews collection
+  final Map<String, double> _calculatedRatings = {};
 
   // Sample conditions
   final List<String> _conditions = [
@@ -159,6 +162,7 @@ class SearchResultsPageState extends State<SearchResultsPage> {
     if (!_isFirebaseAvailable || _firestore == null) {
       setState(() {
         _isLoading = false;
+        // If Firebase is not available, use sample data
         _searchResults = _filterSampleProducts();
       });
       return;
@@ -193,6 +197,11 @@ class SearchResultsPageState extends State<SearchResultsPage> {
         }
       }
 
+      // Fetch ratings for each product from reviews collection
+      for (var product in products) {
+        await _fetchProductRating(product);
+      }
+
       // Sort by listedDate, newest first
       products.sort((a, b) {
         return b.listedDate.compareTo(a.listedDate); // Newest first
@@ -209,6 +218,34 @@ class SearchResultsPageState extends State<SearchResultsPage> {
         // If there's an error, use sample data
         _searchResults = _filterSampleProducts();
       });
+    }
+  }
+
+  // Fetch and calculate average rating for a product from reviews collection
+  Future<void> _fetchProductRating(Product product) async {
+    try {
+      final QuerySnapshot reviewsSnapshot = await _firestore!
+          .collection('reviews')
+          .where('productId', isEqualTo: product.id)
+          .get();
+      
+      if (reviewsSnapshot.docs.isNotEmpty) {
+        double totalRating = 0;
+        for (var doc in reviewsSnapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('rating')) {
+            totalRating += (data['rating'] as num).toDouble();
+          }
+        }
+        
+        // Calculate average rating
+        double averageRating = totalRating / reviewsSnapshot.docs.length;
+        // Store calculated rating in the map
+        _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
+      }
+    } catch (e) {
+      debugPrint('Error fetching ratings for product ${product.id}: $e');
+      // Keep the default rating from the product document if there's an error
     }
   }
 
@@ -478,7 +515,7 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                                               color: Colors.amber[700],
                                             ),
                                             Text(
-                                              ' ${product.rating ?? 4.5} \u2022 ',
+                                              ' ${_calculatedRatings.containsKey(product.id) ? _calculatedRatings[product.id]!.toString() : product.rating.toString()} \u2022 ',
                                               style: TextStyle(
                                                 color: AppColors.coolGray,
                                               ),
