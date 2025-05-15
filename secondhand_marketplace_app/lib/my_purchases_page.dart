@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'home_page.dart';
 import 'my_wallet_page.dart';
@@ -16,104 +18,372 @@ class MyPurchasesPage extends StatefulWidget {
 
 class _MyPurchasesPageState extends State<MyPurchasesPage> {
   int _selectedIndex = 1; // Set to 1 for My Purchases tab
+  
+  // Firebase instances
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // State variables
+  List<PurchaseOrder> _purchaseOrders = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserOrders();
+  }
+  
+  // Fetch orders for the current user
+  Future<void> _fetchUserOrders() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    
+    try {
+      // Get current user ID
+      final User? currentUser = _auth.currentUser;
+      
+      if (currentUser == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Please log in to view your purchases';
+        });
+        return;
+      }
+      
+      // Query orders where buyerId matches current user ID (without orderBy to avoid index requirement)
+      final QuerySnapshot orderSnapshot = await _firestore
+          .collection('orders')
+          .where('buyerId', isEqualTo: currentUser.uid)
+          .get();
+      
+      // Convert to PurchaseOrder objects
+      final List<PurchaseOrder> orders = [];
+      
+      for (var doc in orderSnapshot.docs) {
+        final order = PurchaseOrder.fromFirestore(
+          doc.data() as Map<String, dynamic>,
+          doc.id
+        );
+        
+        // Fetch product details for each order
+        await _fetchProductDetails(order);
+        
+        orders.add(order);
+      }
+      
+      // Sort orders locally by purchase date (newest first)
+      orders.sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
+      
+      if (mounted) {
+        setState(() {
+          _purchaseOrders = orders;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching orders: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Error loading purchases: $e';
+        });
+      }
+    }
+  }
+  
+  // Fetch product details for an order
+  Future<void> _fetchProductDetails(PurchaseOrder order) async {
+    try {
+      final DocumentSnapshot productDoc = await _firestore
+          .collection('products')
+          .doc(order.productId)
+          .get();
+      
+      if (productDoc.exists) {
+        final productData = productDoc.data() as Map<String, dynamic>;
+        order.product = Product.fromFirestore(productData, order.productId);
+      }
+    } catch (e) {
+      debugPrint('Error fetching product ${order.productId}: $e');
+    }
+  }
+  
+  // Update order status in Firestore
+  Future<void> _updateOrderStatus(PurchaseOrder order, OrderStatus newStatus) async {
+    try {
+      await _firestore.collection('orders').doc(order.id).update({
+        'status': newStatus.toString().split('.').last
+      });
+      
+      // Update local state
+      if (mounted) {
+        setState(() {
+          order.status = newStatus;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating order status: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update order status: $e'))
+        );
+      }
+    }
+  }
+  
+  // Add rating and review to order in Firestore
+  Future<void> _addRatingAndReview(PurchaseOrder order, double rating, String? review) async {
+    try {
+      await _firestore.collection('orders').doc(order.id).update({
+        'rating': rating,
+        'review': review
+      });
+      
+      // Also add to reviews collection for product rating calculation
+      await _firestore.collection('reviews').add({
+        'productId': order.productId,
+        'userId': _auth.currentUser?.uid,
+        'rating': rating,
+        'review': review,
+        'timestamp': FieldValue.serverTimestamp()
+      });
+      
+      // Update local state
+      if (mounted) {
+        setState(() {
+          order.rating = rating;
+          order.review = review;
+        });
 
-  // Sample purchase orders for demonstration
-  final List<PurchaseOrder> _purchaseOrders = [
-    PurchaseOrder(
-      id: 'ORD-001',
-      product: Product(
-        id: '1',
-        name: 'iPhone 13 Pro',
-        description:
-            'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
-        price: 699.99,
-        imageUrl: 'https://picsum.photos/id/1/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_1',
-        seller: 'John Doe',
-        rating: 4.7,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 3)),
-        stock: 3,
-        adBoost: 50.0,
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Thank you for your review!'))
+        );
+      }
+    } catch (e) {
+      debugPrint('Error adding rating and review: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save your review: $e'))
+        );
+      }
+    }
+  }
+  
+  // Cancel an order
+  void _cancelOrder(PurchaseOrder order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.charcoalBlack,
+        title: Text(
+          'Cancel Order',
+          style: TextStyle(
+            color: AppColors.coolGray,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to cancel this order?',
+          style: TextStyle(
+            color: AppColors.coolGray,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'No',
+              style: TextStyle(
+                color: AppColors.mutedTeal,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // Update order status to cancelled in Firestore
+              _updateOrderStatus(order, OrderStatus.cancelled);
+              Navigator.pop(context);
+            },
+            child: Text(
+              'Yes',
+              style: TextStyle(
+                color: AppColors.warmCoral,
+              ),
+            ),
+          ),
+        ],
       ),
-      quantity: 1,
-      price: 699.99,
-      purchaseDate: DateTime.now().subtract(const Duration(days: 2)),
-      status: OrderStatus.pending,
-    ),
-    PurchaseOrder(
-      id: 'ORD-002',
-      product: Product(
-        id: '2',
-        name: 'Leather Sofa',
-        description:
-            'Brown leather sofa, 3-seater, 2 years old. Very comfortable.',
-        price: 450.00,
-        imageUrl: 'https://picsum.photos/id/2/200/200',
-        category: 'Furniture',
-        sellerId: 'seller_2',
-        seller: 'Jane Smith',
-        rating: 4.9,
-        condition: 'Excellent',
-        listedDate: DateTime.now().subtract(const Duration(days: 5)),
-        stock: 1,
-        adBoost: 100.0,
+    );
+  }
+
+  // Mark order as received
+  void _markAsReceived(PurchaseOrder order) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.charcoalBlack,
+        title: Text(
+          'Confirm Receipt',
+          style: TextStyle(
+            color: AppColors.coolGray,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Have you received this item? This action cannot be undone.',
+          style: TextStyle(
+            color: AppColors.coolGray,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'No',
+              style: TextStyle(
+                color: AppColors.mutedTeal,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // Update order status to received in Firestore
+              _updateOrderStatus(order, OrderStatus.received);
+              Navigator.pop(context);
+              // Show rating dialog after marking as received
+              _showRatingDialog(order);
+            },
+            child: Text(
+              'Yes',
+              style: TextStyle(
+                color: AppColors.mutedTeal,
+              ),
+            ),
+          ),
+        ],
       ),
-      quantity: 1,
-      price: 450.00,
-      purchaseDate: DateTime.now().subtract(const Duration(days: 5)),
-      status: OrderStatus.processed,
-    ),
-    PurchaseOrder(
-      id: 'ORD-003',
-      product: Product(
-        id: '3',
-        name: 'Nike Air Jordan',
-        description:
-            'Nike Air Jordan 1, size US 10, worn only twice. Original box included.',
-        price: 180.00,
-        imageUrl: 'https://picsum.photos/id/3/200/200',
-        category: 'Clothing',
-        sellerId: 'seller_3',
-        seller: 'Mike Johnson',
-        rating: 4.5,
-        condition: 'Like New',
-        listedDate: DateTime.now().subtract(const Duration(days: 1)),
-        stock: 1,
-        adBoost: 75.0,
+    );
+  }
+
+  // Show rating dialog
+  void _showRatingDialog(PurchaseOrder order) {
+    double rating = 5.0;
+    final TextEditingController reviewController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.charcoalBlack,
+          title: Text(
+            'Rate & Review',
+            style: TextStyle(
+              color: AppColors.coolGray,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How would you rate this product?',
+                  style: TextStyle(
+                    color: AppColors.coolGray,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Star rating
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(
+                        index < rating.floor()
+                            ? Icons.star
+                            : (index == rating.floor() &&
+                                    rating - rating.floor() >= 0.5)
+                                ? Icons.star_half
+                                : Icons.star_border,
+                        color: Colors.amber,
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          rating = index + 1.0;
+                        });
+                      },
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Write a review (optional):',
+                  style: TextStyle(
+                    color: AppColors.coolGray,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Review text field
+                TextField(
+                  controller: reviewController,
+                  maxLines: 3,
+                  style: TextStyle(color: AppColors.coolGray),
+                  decoration: InputDecoration(
+                    hintText: 'Share your experience...',
+                    hintStyle: TextStyle(
+                      color: AppColors.coolGray.withAlpha(128),
+                    ),
+                    fillColor: AppColors.deepSlateGray,
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: AppColors.coolGray,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Save rating and review to Firestore
+                _addRatingAndReview(
+                  order, 
+                  rating, 
+                  reviewController.text.isNotEmpty ? reviewController.text : null
+                );
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedTeal,
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
       ),
-      quantity: 1,
-      price: 180.00,
-      purchaseDate: DateTime.now().subtract(const Duration(days: 1)),
-      status: OrderStatus.outForDelivery,
-    ),
-    PurchaseOrder(
-      id: 'ORD-004',
-      product: Product(
-        id: '4',
-        name: 'Harry Potter Collection',
-        description:
-            'Complete set of Harry Potter books (7 books), hardcover edition.',
-        price: 120.00,
-        imageUrl: 'https://picsum.photos/id/4/200/200',
-        category: 'Books',
-        sellerId: 'seller_4',
-        seller: 'Sarah Williams',
-        rating: 4.8,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 7)),
-        stock: 2,
-        adBoost: 25.0,
-      ),
-      quantity: 1,
-      price: 120.00,
-      purchaseDate: DateTime.now().subtract(const Duration(days: 10)),
-      status: OrderStatus.received,
-      rating: 5.0,
-      review: 'Excellent condition, exactly as described!',
-    ),
-  ];
+    ).then((_) {
+      reviewController.dispose();
+    });
+  }
 
   void _onItemTapped(int index) {
     if (index == 0) {
@@ -142,243 +412,6 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
         DarkPageReplaceRoute(page: const MyProfilePage()),
       );
     }
-  }
-
-  // Cancel an order
-  void _cancelOrder(PurchaseOrder order) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: AppColors.deepSlateGray,
-            title: Text(
-              'Cancel Order',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-            content: Text(
-              'Are you sure you want to cancel this order?',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('No', style: TextStyle(color: AppColors.mutedTeal)),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    order.status = OrderStatus.cancelled;
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Order cancelled successfully'),
-                      backgroundColor: AppColors.warmCoral,
-                    ),
-                  );
-                },
-                child: Text(
-                  'Yes',
-                  style: TextStyle(color: AppColors.warmCoral),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  // Mark order as received
-  void _markAsReceived(PurchaseOrder order) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: AppColors.deepSlateGray,
-            title: Text(
-              'Confirm Receipt',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-            content: Text(
-              'Confirm that you have received this order? This will release payment to the seller.',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: AppColors.mutedTeal),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    order.status = OrderStatus.received;
-                  });
-                  Navigator.pop(context);
-                  // Show rating dialog
-                  _showRatingDialog(order);
-                },
-                child: Text(
-                  'Confirm Receipt',
-                  style: TextStyle(color: AppColors.mutedTeal),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  // Show rating dialog
-  void _showRatingDialog(PurchaseOrder order) {
-    double rating = 5.0;
-    final reviewController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: AppColors.deepSlateGray,
-            title: Text(
-              'Rate & Review',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'How would you rate this product?',
-                    style: TextStyle(color: AppColors.coolGray),
-                  ),
-                  const SizedBox(height: 16),
-                  // Star rating
-                  StatefulBuilder(
-                    builder: (context, setStateDialog) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(5, (index) {
-                          return IconButton(
-                            icon: Icon(
-                              index < rating.floor()
-                                  ? Icons.star
-                                  : (index == rating.floor() && rating % 1 > 0)
-                                  ? Icons.star_half
-                                  : Icons.star_border,
-                              color: AppColors.softLemonYellow,
-                              size: 32,
-                            ),
-                            onPressed: () {
-                              setStateDialog(() {
-                                rating = index + 1.0;
-                              });
-                            },
-                          );
-                        }),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Review text field
-                  TextField(
-                    controller: reviewController,
-                    maxLines: 3,
-                    style: TextStyle(color: AppColors.coolGray),
-                    decoration: InputDecoration(
-                      hintText: 'Write your review here...',
-                      hintStyle: TextStyle(
-                        color: AppColors.coolGray.withAlpha(150),
-                      ),
-                      filled: true,
-                      fillColor: AppColors.charcoalBlack,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppColors.coolGray),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: AppColors.mutedTeal),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Skip',
-                  style: TextStyle(color: AppColors.coolGray),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    order.rating = rating;
-                    order.review =
-                        reviewController.text.isNotEmpty
-                            ? reviewController.text
-                            : null;
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Thank you for your review!'),
-                      backgroundColor: AppColors.mutedTeal,
-                    ),
-                  );
-                },
-                child: Text(
-                  'Submit',
-                  style: TextStyle(color: AppColors.mutedTeal),
-                ),
-              ),
-            ],
-          ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.charcoalBlack,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'My Purchases',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-      ),
-      body:
-          _purchaseOrders.isEmpty
-              ? _buildEmptyPurchases()
-              : _buildPurchasesList(),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            label: 'My Purchases',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        backgroundColor: AppColors.deepSlateGray,
-        selectedItemColor: AppColors.softLemonYellow,
-        unselectedItemColor: AppColors.coolGray,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-      ),
-    );
   }
 
   // Empty purchases view
@@ -437,9 +470,42 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
 
   // Purchases list view
   Widget _buildPurchasesList() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: AppColors.coolGray),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _fetchUserOrders,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedTeal,
+              ),
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (_purchaseOrders.isEmpty) {
+      return _buildEmptyPurchases();
+    }
+    
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
       itemCount: _purchaseOrders.length,
+      padding: const EdgeInsets.all(16),
       itemBuilder: (context, index) {
         final order = _purchaseOrders[index];
         return Card(
@@ -491,12 +557,19 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                     // Product image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        order.product.imageUrl,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
+                      child: order.product?.imageUrl != null
+                        ? Image.network(
+                            order.product!.imageUrl,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          )
+                        : Container(
+                            width: 80,
+                            height: 80,
+                            color: AppColors.deepSlateGray,
+                            child: Icon(Icons.image_not_supported, color: AppColors.coolGray),
+                          ),
                     ),
                     const SizedBox(width: 16),
                     // Product details
@@ -505,7 +578,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.product.name,
+                            order.product?.name ?? 'Product Unavailable',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -514,7 +587,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            order.product.description,
+                            order.product?.description ?? 'No description available',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.coolGray.withAlpha(150),
@@ -523,21 +596,33 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 8),
-                          // Quantity and price
+                          // Price and quantity with savings
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Qty: ${order.quantity}',
-                                style: TextStyle(color: AppColors.coolGray),
-                              ),
-                              Text(
-                                'RM ${order.totalPrice.toStringAsFixed(2)}',
+                                'RM ${order.price.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                   color: AppColors.mutedTeal,
                                 ),
                               ),
+                              Text(
+                                ' × ${order.quantity}',
+                                style: TextStyle(
+                                  color: AppColors.coolGray,
+                                ),
+                              ),
+                              if (order.savings > 0) ...[  
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Saved: RM ${order.savings.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green[300],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -634,7 +719,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                                 ),
                               ),
                             // Mark as received button
-                            if (order.canMarkAsReceived) ...[
+                            if (order.canMarkAsReceived) ...[  
                               const SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: () => _markAsReceived(order),
@@ -655,7 +740,7 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
                               ),
                             ],
                             // Rate button
-                            if (order.canRate) ...[
+                            if (order.canRate) ...[  
                               const SizedBox(width: 12),
                               ElevatedButton(
                                 onPressed: () => _showRatingDialog(order),
@@ -723,6 +808,45 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
           ),
         );
       },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.charcoalBlack,
+      appBar: AppBar(
+        backgroundColor: AppColors.deepSlateGray,
+        title: Text(
+          'My Purchases',
+          style: TextStyle(color: AppColors.coolGray),
+        ),
+      ),
+      body: _buildPurchasesList(),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag_outlined),
+            label: 'My Purchases',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
+        showUnselectedLabels: true,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 }
