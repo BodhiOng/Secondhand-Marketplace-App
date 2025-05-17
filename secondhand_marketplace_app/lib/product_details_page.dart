@@ -7,6 +7,7 @@ import 'report_item_page.dart';
 import 'checkout_page.dart';
 import 'chat_detail_page.dart';
 import 'product_reviews_page.dart';
+import 'utils/image_utils.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -783,9 +784,20 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           Row(
             children: [
               // Reviewer Profile Pic
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: NetworkImage(review['profilePic']),
+              ClipOval(
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: ImageUtils.base64ToImage(
+                    review['profilePic'],
+                    fit: BoxFit.cover,
+                    errorWidget: const CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.grey,
+                      child: Icon(Icons.person, size: 16, color: Colors.white),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
 
@@ -819,18 +831,60 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           Text(review['text'], style: TextStyle(color: AppColors.coolGray)),
 
           // Review Image (if any)
-          if (review['image'] != null) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                review['image'],
-                height: 100,
-                width: 100,
-                fit: BoxFit.cover,
+          if (review['image'] != null && review['image'].isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => Dialog.fullscreen(
+                    backgroundColor: Colors.black87,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: InteractiveViewer(
+                            minScale: 0.5,
+                            maxScale: 4.0,
+                            child: ImageUtils.base64ToImage(
+                              review['image'],
+                              fit: BoxFit.contain,
+                              errorWidget: Center(
+                                child: Icon(Icons.broken_image, color: Colors.grey[400], size: 50),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 40,
+                          right: 20,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: ImageUtils.base64ToImage(
+                    review['image'],
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorWidget: Container(
+                      width: 100,
+                      height: 100,
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ],
 
           const SizedBox(height: 8),
           Divider(color: AppColors.coolGray.withAlpha(77)),

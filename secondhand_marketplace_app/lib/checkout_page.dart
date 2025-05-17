@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/cart_item.dart';
-import 'models/product.dart';
 import 'order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -58,46 +57,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       debugPrint('Cart saved to local storage: ${_cartItems.length} items');
     } catch (e) {
       debugPrint('Error saving cart items: $e');
-    }
-  }
-  
-  // Load cart items from local storage
-  static Future<List<CartItem>> loadCartItemsFromLocalStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
-      
-      final String? cartItemsJson = prefs.getString('cart_$userId');
-      if (cartItemsJson == null) {
-        return [];
-      }
-      
-      // Parse JSON
-      final List<dynamic> decodedJson = jsonDecode(cartItemsJson);
-      
-      // Convert to CartItem objects
-      return decodedJson.map((item) {
-        return CartItem(
-          product: Product(
-            id: item['productId'] ?? '',
-            name: item['name'] ?? '',
-            description: 'Product from cart', // Default description
-            price: (item['price'] ?? 0).toDouble(),
-            imageUrl: item['imageUrl'] ?? '',
-            condition: item['condition'] ?? 'Used',
-            sellerId: item['sellerId'] ?? '',
-            category: item['category'] ?? 'Other',
-            listedDate: DateTime.now(),
-            stock: item['quantity'] ?? 1,
-            adBoost: 0.0,
-          ),
-          quantity: item['quantity'] ?? 1,
-          isSelected: item['isSelected'] ?? false,
-        );
-      }).toList();
-    } catch (e) {
-      debugPrint('Error loading cart items: $e');
-      return [];
     }
   }
   

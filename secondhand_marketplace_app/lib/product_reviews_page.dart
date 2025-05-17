@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/product.dart';
+import 'utils/image_converter.dart';
+import 'utils/image_utils.dart';
 
 class ProductReviewsPage extends StatefulWidget {
   final Product product;
@@ -101,7 +103,6 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
             'date': formattedDate,
             'text': reviewData['text'] ?? 'No comment provided',
             'image': reviewData['imageUrl'],
-            'verified': reviewData['verified'] ?? false,
           });
         }
         
@@ -176,22 +177,6 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
                               fontSize: 16,
                             ),
                           ),
-                          if (review['verified'] == true) ...[  
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.verified_user,
-                              size: 14,
-                              color: AppColors.mutedTeal,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Verified Purchase',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.mutedTeal,
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -229,14 +214,73 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
             ),
 
             // Review Image (if any)
-            if (review['image'] != null) ...[  
+            if (review['image'] != null && review['image'].toString().isNotEmpty) ...[  
               const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  review['image'],
-                  height: 150,
-                  fit: BoxFit.cover,
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog.fullscreen(
+                      backgroundColor: Colors.black87,
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: InteractiveViewer(
+                              minScale: 0.5,
+                              maxScale: 4.0,
+                              child: ImageUtils.isBase64Image(review['image'])
+                                  ? Image.memory(
+                                      ImageConverter.base64ToBytes(review['image']),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : Image.network(
+                                      review['image'],
+                                      fit: BoxFit.contain,
+                                    ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 40,
+                            right: 20,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.mutedTeal.withAlpha(100),
+                      width: 1,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(7),
+                    child: ImageUtils.base64ToImage(
+                      review['image'],
+                      width: 100,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorWidget: Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            color: Colors.grey,
+                            size: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
