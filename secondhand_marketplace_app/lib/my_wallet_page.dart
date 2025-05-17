@@ -25,38 +25,8 @@ class _MyWalletPageState extends State<MyWalletPage> {
   String _uid = '';
   
   // Transaction history
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'type': 'Purchase',
-      'description': 'iPhone 13 Pro',
-      'amount': -699.99,
-      'date': DateTime.now().subtract(const Duration(days: 2)),
-    },
-    {
-      'type': 'Top-up',
-      'description': 'Added via Credit Card',
-      'amount': 1000.00,
-      'date': DateTime.now().subtract(const Duration(days: 5)),
-    },
-    {
-      'type': 'Refund',
-      'description': 'Cancelled Order: Leather Sofa',
-      'amount': 450.00,
-      'date': DateTime.now().subtract(const Duration(days: 7)),
-    },
-    {
-      'type': 'Withdrawal',
-      'description': 'To Bank Account',
-      'amount': -200.00,
-      'date': DateTime.now().subtract(const Duration(days: 10)),
-    },
-    {
-      'type': 'Purchase',
-      'description': 'Nike Air Jordan',
-      'amount': -180.00,
-      'date': DateTime.now().subtract(const Duration(days: 12)),
-    },
-  ];
+  List<Map<String, dynamic>> _transactions = [];
+  bool _isLoadingTransactions = true;
 
   @override
   void initState() {
@@ -64,18 +34,21 @@ class _MyWalletPageState extends State<MyWalletPage> {
     _fetchWalletData();
   }
   
-  // Fetch wallet data from Firestore
+  // Fetch wallet data and transaction history from Firestore
   Future<void> _fetchWalletData() async {
     try {
       final User? currentUser = _auth.currentUser;
       if (currentUser == null) {
         setState(() {
           _isLoading = false;
+          _isLoadingTransactions = false;
         });
         return;
       }
 
       _uid = currentUser.uid;
+      
+      // Fetch user wallet balance
       final DocumentSnapshot userDoc = 
           await _firestore.collection('users').doc(_uid).get();
 
@@ -91,11 +64,72 @@ class _MyWalletPageState extends State<MyWalletPage> {
           _isLoading = false;
         });
       }
+      
+      // Fetch transaction history
+      await _fetchTransactionHistory();
+      
     } catch (e) {
       debugPrint('Error fetching wallet data: $e');
       setState(() {
         _isLoading = false;
+        _isLoadingTransactions = false;
       });
+    }
+  }
+  
+  // Fetch transaction history from Firestore
+  Future<void> _fetchTransactionHistory() async {
+    try {
+      setState(() {
+        _isLoadingTransactions = true;
+      });
+      
+      final QuerySnapshot transactionSnapshot = await _firestore
+          .collection('walletTransactions')
+          .where('userId', isEqualTo: _uid)
+          .orderBy('timestamp', descending: true)
+          .get();
+          
+      List<Map<String, dynamic>> transactions = [];
+      
+      for (var doc in transactionSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        
+        // Convert Firestore data to app format
+        transactions.add({
+          'id': doc.id,
+          'type': data['type'] ?? '',
+          'description': data['description'] ?? '',
+          'amount': _getTransactionAmount(data['type'] as String, (data['amount'] ?? 0).toDouble()),
+          'date': (data['timestamp'] as Timestamp).toDate(),
+          'status': data['status'] ?? 'Completed',
+          'relatedOrderId': data['relatedOrderId'],
+        });
+      }
+      
+      setState(() {
+        _transactions = transactions;
+        _isLoadingTransactions = false;
+      });
+    } catch (e) {
+      debugPrint('Error fetching transaction history: $e');
+      setState(() {
+        _isLoadingTransactions = false;
+      });
+    }
+  }
+  
+  // Helper to determine transaction amount sign based on type
+  double _getTransactionAmount(String type, double amount) {
+    switch (type) {
+      case 'Deposit':
+      case 'Sale':
+        return amount.abs(); // Positive
+      case 'Withdrawal':
+      case 'Purchase':
+        return -amount.abs(); // Negative
+      default:
+        return amount;
     }
   }
 
@@ -214,15 +248,22 @@ class _MyWalletPageState extends State<MyWalletPage> {
                   _balance += amount;
                 });
 
-                // Add transaction to history
-                setState(() {
-                  _transactions.insert(0, {
-                    'type': 'Top-up',
-                    'description': 'Added via Bank Transfer',
-                    'amount': amount,
-                    'date': DateTime.now(),
-                  });
+                // Add transaction to Firestore
+                final timestamp = Timestamp.now();
+                final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                
+                _firestore.collection('walletTransactions').doc(transactionId).set({
+                  'id': transactionId,
+                  'userId': _uid,
+                  'type': 'Deposit',
+                  'amount': amount,
+                  'description': 'Added via Bank Transfer',
+                  'timestamp': timestamp,
+                  'status': 'Completed',
                 });
+                
+                // Refresh transaction history
+                _fetchTransactionHistory();
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -386,15 +427,22 @@ class _MyWalletPageState extends State<MyWalletPage> {
                   _balance -= amount;
                 });
 
-                // Add transaction to history
-                setState(() {
-                  _transactions.insert(0, {
-                    'type': 'Withdrawal',
-                    'description': 'To Bank Account',
-                    'amount': -amount,
-                    'date': DateTime.now(),
-                  });
+                // Add transaction to Firestore
+                final timestamp = Timestamp.now();
+                final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                
+                _firestore.collection('walletTransactions').doc(transactionId).set({
+                  'id': transactionId,
+                  'userId': _uid,
+                  'type': 'Withdrawal',
+                  'amount': amount,
+                  'description': 'To Bank Account',
+                  'timestamp': timestamp,
+                  'status': 'Completed',
                 });
+                
+                // Refresh transaction history
+                _fetchTransactionHistory();
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -426,6 +474,36 @@ class _MyWalletPageState extends State<MyWalletPage> {
   // Helper method to format date
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+  
+  // Helper to get transaction icon based on type
+  IconData _getTransactionIcon(String type) {
+    switch (type) {
+      case 'Deposit':
+        return Icons.arrow_downward;
+      case 'Withdrawal':
+        return Icons.arrow_upward;
+      case 'Purchase':
+        return Icons.shopping_cart;
+      case 'Sale':
+        return Icons.sell;
+      default:
+        return Icons.swap_horiz;
+    }
+  }
+  
+  // Helper to get status color
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Completed':
+        return AppColors.mutedTeal;
+      case 'Pending':
+        return Colors.amber;
+      case 'Failed':
+        return AppColors.warmCoral;
+      default:
+        return AppColors.coolGray;
+    }
   }
 
   @override
@@ -539,79 +617,157 @@ class _MyWalletPageState extends State<MyWalletPage> {
                     ),
                     const SizedBox(height: 24),
                     // Transaction history section
-                    Text(
-                      'Transaction History',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.coolGray,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Transaction History',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.coolGray,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.refresh, color: AppColors.coolGray),
+                          onPressed: _fetchTransactionHistory,
+                          tooltip: 'Refresh transactions',
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    Card(
-                      color: AppColors.deepSlateGray,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _transactions.length,
-                        separatorBuilder: (context, index) => Divider(
-                          color: AppColors.coolGray.withAlpha(50),
-                          height: 1,
-                        ),
-                        itemBuilder: (context, index) {
-                          final transaction = _transactions[index];
-                          final amount = transaction['amount'] as double;
-                          final isPositive = amount > 0;
-                          
-                          return ListTile(
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: (isPositive ? AppColors.mutedTeal : AppColors.warmCoral).withAlpha(50),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                isPositive ? Icons.arrow_downward : Icons.arrow_upward,
-                                color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
-                                size: 20,
-                              ),
+                    _isLoadingTransactions
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : _transactions.isEmpty
+                        ? Card(
+                            color: AppColors.deepSlateGray,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            title: Text(
-                              transaction['type'] as String,
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                            subtitle: Text(
-                              transaction['description'] as String,
-                              style: TextStyle(color: AppColors.coolGray.withAlpha(150)),
-                            ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${isPositive ? '+' : ''}RM ${amount.abs().toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Center(
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.receipt_long,
+                                      color: AppColors.coolGray.withAlpha(150),
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'No transactions yet',
+                                      style: TextStyle(
+                                        color: AppColors.coolGray,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  _formatDate(transaction['date'] as DateTime),
-                                  style: TextStyle(
-                                    color: AppColors.coolGray.withAlpha(150),
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
+                          )
+                        : Card(
+                            color: AppColors.deepSlateGray,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _transactions.length,
+                              separatorBuilder: (context, index) => Divider(
+                                color: AppColors.coolGray.withAlpha(50),
+                                height: 1,
+                              ),
+                              itemBuilder: (context, index) {
+                                final transaction = _transactions[index];
+                                final amount = transaction['amount'] as double;
+                                final isPositive = amount > 0;
+                                final status = transaction['status'] as String;
+                                
+                                return ListTile(
+                                  leading: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: (isPositive ? AppColors.mutedTeal : AppColors.warmCoral).withAlpha(50),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      _getTransactionIcon(transaction['type'] as String),
+                                      color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        transaction['type'] as String,
+                                        style: TextStyle(color: AppColors.coolGray),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (status != 'Completed')
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: _getStatusColor(status).withAlpha(50),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            status,
+                                            style: TextStyle(
+                                              color: _getStatusColor(status),
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  subtitle: Text(
+                                    transaction['description'] as String,
+                                    style: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                                  ),
+                                  trailing: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${isPositive ? '+' : ''}RM ${amount.abs().toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                          color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        _formatDate(transaction['date'] as DateTime),
+                                        style: TextStyle(
+                                          color: AppColors.coolGray.withAlpha(150),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: transaction['relatedOrderId'] != null
+                                    ? () {
+                                        // Navigate to order details if there's a related order
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Order ID: ${transaction['relatedOrderId']}'),
+                                            backgroundColor: AppColors.deepSlateGray,
+                                          ),
+                                        );
+                                      }
+                                    : null,
+                                );
+                              },
+                            ),
+                          ),
                   ],
                 ),
               ),
