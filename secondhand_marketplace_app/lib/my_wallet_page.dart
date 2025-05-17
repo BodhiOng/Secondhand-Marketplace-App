@@ -163,311 +163,400 @@ class _MyWalletPageState extends State<MyWalletPage> {
   // Show top-up dialog
   void _showTopUpDialog() {
     final amountController = TextEditingController();
+    String selectedPaymentMethod = 'Credit/Debit Card'; // Default payment method
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Top Up Balance',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Amount to add:',
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.deepSlateGray,
+              title: Text(
+                'Top Up Balance',
                 style: TextStyle(color: AppColors.coolGray),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: AppColors.coolGray),
-                decoration: InputDecoration(
-                  prefixText: r'RM',
-                  prefixStyle: TextStyle(color: AppColors.coolGray),
-                  hintText: '0.00',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
-                  filled: true,
-                  fillColor: AppColors.charcoalBlack,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.coolGray),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.mutedTeal),
-                  ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Amount to add:',
+                      style: TextStyle(color: AppColors.coolGray),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(color: AppColors.coolGray),
+                      decoration: InputDecoration(
+                        prefixText: r'RM',
+                        prefixStyle: TextStyle(color: AppColors.coolGray),
+                        hintText: '0.00',
+                        hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                        filled: true,
+                        fillColor: AppColors.charcoalBlack,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.coolGray),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.mutedTeal),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Payment Method:',
+                      style: TextStyle(color: AppColors.coolGray),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.charcoalBlack,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.coolGray),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: selectedPaymentMethod,
+                          dropdownColor: AppColors.charcoalBlack,
+                          style: TextStyle(color: AppColors.coolGray),
+                          icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
+                          items: [
+                            'Credit/Debit Card',
+                            'E-Wallet',
+                            'PayPal',
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setDialogState(() {
+                                selectedPaymentMethod = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              // Validate amount
-              final amountText = amountController.text.trim();
-              if (amountText.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please enter an amount'),
-                    backgroundColor: AppColors.warmCoral,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.coolGray),
                   ),
-                );
-                return;
-              }
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Validate amount
+                    final amountText = amountController.text.trim();
+                    if (amountText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter an amount'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                      return;
+                    }
 
-              final amount = double.tryParse(amountText);
-              if (amount == null || amount <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please enter a valid amount'),
-                    backgroundColor: AppColors.warmCoral,
+                    final amount = double.tryParse(amountText);
+                    if (amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter a valid amount'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Update balance in Firestore
+                    _firestore.collection('users').doc(_uid).update({
+                      'walletBalance': FieldValue.increment(amount),
+                    }).then((_) {
+                      // Update local balance
+                      setState(() {
+                        _balance += amount;
+                      });
+
+                      // Add transaction to Firestore
+                      final timestamp = Timestamp.now();
+                      final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                      
+                      // Get description based on payment method
+                      String description;
+                      switch (selectedPaymentMethod) {
+                        case 'Credit/Debit Card':
+                          description = 'Card payment to wallet';
+                          break;
+                        case 'E-Wallet':
+                          description = 'E-Wallet transfer to account';
+                          break;
+                        case 'PayPal':
+                          description = 'PayPal deposit to wallet';
+                          break;
+                        default:
+                          description = 'Added via $selectedPaymentMethod';
+                      }
+                      
+                      _firestore.collection('walletTransactions').doc(transactionId).set({
+                        'id': transactionId,
+                        'userId': _uid,
+                        'type': 'Deposit',
+                        'amount': amount,
+                        'description': description,
+                        'timestamp': timestamp,
+                        'status': 'Completed',
+                      });
+                      
+                      // Refresh transaction history
+                      _fetchTransactionHistory();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('RM${amount.toStringAsFixed(2)} added to your wallet'),
+                          backgroundColor: AppColors.mutedTeal,
+                        ),
+                      );
+                    }).catchError((error) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $error'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                    });
+
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Add',
+                    style: TextStyle(color: AppColors.mutedTeal),
                   ),
-                );
-                return;
-              }
-
-              // Update balance in Firestore
-              _firestore.collection('users').doc(_uid).update({
-                'walletBalance': FieldValue.increment(amount),
-              }).then((_) {
-                // Update local balance
-                setState(() {
-                  _balance += amount;
-                });
-
-                // Add transaction to Firestore
-                final timestamp = Timestamp.now();
-                final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
-                
-                _firestore.collection('walletTransactions').doc(transactionId).set({
-                  'id': transactionId,
-                  'userId': _uid,
-                  'type': 'Deposit',
-                  'amount': amount,
-                  'description': 'Added via Bank Transfer',
-                  'timestamp': timestamp,
-                  'status': 'Completed',
-                });
-                
-                // Refresh transaction history
-                _fetchTransactionHistory();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('RM${amount.toStringAsFixed(2)} added to your wallet'),
-                    backgroundColor: AppColors.mutedTeal,
-                  ),
-                );
-              }).catchError((error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $error'),
-                    backgroundColor: AppColors.warmCoral,
-                  ),
-                );
-              });
-
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Add',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-        ],
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
   // Show withdraw dialog
   void _showWithdrawDialog() {
     final amountController = TextEditingController();
-    final accountController = TextEditingController();
+    String selectedPaymentMethod = 'Credit/Debit Card'; // Default payment method
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Withdraw Balance',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Amount to withdraw:',
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.deepSlateGray,
+              title: Text(
+                'Withdraw Balance',
                 style: TextStyle(color: AppColors.coolGray),
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: amountController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(color: AppColors.coolGray),
-                decoration: InputDecoration(
-                  prefixText: r'RM',
-                  prefixStyle: TextStyle(color: AppColors.coolGray),
-                  hintText: '0.00',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
-                  filled: true,
-                  fillColor: AppColors.charcoalBlack,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.coolGray),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.mutedTeal),
-                  ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Amount to withdraw:',
+                      style: TextStyle(color: AppColors.coolGray),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(color: AppColors.coolGray),
+                      decoration: InputDecoration(
+                        prefixText: r'RM',
+                        prefixStyle: TextStyle(color: AppColors.coolGray),
+                        hintText: '0.00',
+                        hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                        filled: true,
+                        fillColor: AppColors.charcoalBlack,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.coolGray),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: AppColors.mutedTeal),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Withdrawal Method:',
+                      style: TextStyle(color: AppColors.coolGray),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.charcoalBlack,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.coolGray),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: selectedPaymentMethod,
+                          dropdownColor: AppColors.charcoalBlack,
+                          style: TextStyle(color: AppColors.coolGray),
+                          icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
+                          items: [
+                            'Credit/Debit Card',
+                            'E-Wallet',
+                            'PayPal',
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setDialogState(() {
+                                selectedPaymentMethod = newValue;
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Bank Account Number:',
-                style: TextStyle(color: AppColors.coolGray),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: accountController,
-                style: TextStyle(color: AppColors.coolGray),
-                decoration: InputDecoration(
-                  hintText: 'Enter your bank account number',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(150)),
-                  filled: true,
-                  fillColor: AppColors.charcoalBlack,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.coolGray),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: AppColors.mutedTeal),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: AppColors.coolGray),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.coolGray),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              // Validate amount
-              final amountText = amountController.text.trim();
-              if (amountText.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please enter an amount'),
-                    backgroundColor: AppColors.warmCoral,
+                TextButton(
+                  onPressed: () {
+                    // Validate amount
+                    final amountText = amountController.text.trim();
+                    if (amountText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter an amount'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                      return;
+                    }
+
+                    final amount = double.tryParse(amountText);
+                    if (amount == null || amount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Please enter a valid amount'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                      return;
+                    }
+
+                    if (amount > _balance) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Insufficient balance'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Update balance in Firestore
+                    _firestore.collection('users').doc(_uid).update({
+                      'walletBalance': FieldValue.increment(-amount),
+                    }).then((_) {
+                      // Update local balance
+                      setState(() {
+                        _balance -= amount;
+                      });
+
+                      // Add transaction to Firestore
+                      final timestamp = Timestamp.now();
+                      final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                      
+                      // Get description based on payment method
+                      String description;
+                      switch (selectedPaymentMethod) {
+                        case 'Credit/Debit Card':
+                          description = 'Withdrawal to bank card';
+                          break;
+                        case 'E-Wallet':
+                          description = 'Transfer to e-wallet account';
+                          break;
+                        case 'PayPal':
+                          description = 'Withdrawal to PayPal account';
+                          break;
+                        default:
+                          description = 'Withdrawal via $selectedPaymentMethod';
+                      }
+                      
+                      _firestore.collection('walletTransactions').doc(transactionId).set({
+                        'id': transactionId,
+                        'userId': _uid,
+                        'type': 'Withdrawal',
+                        'amount': amount,
+                        'description': description,
+                        'timestamp': timestamp,
+                        'status': 'Completed',
+                      });
+                      
+                      // Refresh transaction history
+                      _fetchTransactionHistory();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('RM${amount.toStringAsFixed(2)} withdrawn from your wallet'),
+                          backgroundColor: AppColors.mutedTeal,
+                        ),
+                      );
+                    }).catchError((error) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error: $error'),
+                          backgroundColor: AppColors.warmCoral,
+                        ),
+                      );
+                    });
+
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Withdraw',
+                    style: TextStyle(color: AppColors.mutedTeal),
                   ),
-                );
-                return;
-              }
-
-              final amount = double.tryParse(amountText);
-              if (amount == null || amount <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please enter a valid amount'),
-                    backgroundColor: AppColors.warmCoral,
-                  ),
-                );
-                return;
-              }
-
-              if (amount > _balance) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Insufficient balance'),
-                    backgroundColor: AppColors.warmCoral,
-                  ),
-                );
-                return;
-              }
-
-              // Validate account number
-              final accountNumber = accountController.text.trim();
-              if (accountNumber.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Please enter your bank account number'),
-                    backgroundColor: AppColors.warmCoral,
-                  ),
-                );
-                return;
-              }
-
-              // Update balance in Firestore
-              _firestore.collection('users').doc(_uid).update({
-                'walletBalance': FieldValue.increment(-amount),
-              }).then((_) {
-                // Update local balance
-                setState(() {
-                  _balance -= amount;
-                });
-
-                // Add transaction to Firestore
-                final timestamp = Timestamp.now();
-                final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
-                
-                _firestore.collection('walletTransactions').doc(transactionId).set({
-                  'id': transactionId,
-                  'userId': _uid,
-                  'type': 'Withdrawal',
-                  'amount': amount,
-                  'description': 'To Bank Account',
-                  'timestamp': timestamp,
-                  'status': 'Completed',
-                });
-                
-                // Refresh transaction history
-                _fetchTransactionHistory();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('RM${amount.toStringAsFixed(2)} withdrawn from your wallet'),
-                    backgroundColor: AppColors.mutedTeal,
-                  ),
-                );
-              }).catchError((error) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $error'),
-                    backgroundColor: AppColors.warmCoral,
-                  ),
-                );
-              });
-
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Withdraw',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-        ],
-      ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
