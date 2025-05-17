@@ -18,16 +18,39 @@ def initialize_firebase():
         print(f"Error initializing Firebase: {e}")
         return False
 
+# Clear all existing auth accounts
+def clear_auth_accounts():
+    print("\nClearing existing auth accounts...")
+    try:
+        # Get all users from Firebase Auth
+        page = auth.list_users()
+        deleted_count = 0
+        
+        # Delete each user
+        for user in page.users:
+            auth.delete_user(user.uid)
+            deleted_count += 1
+            print(f"Deleted user: {user.email} (UID: {user.uid})")
+        
+        print(f"Successfully deleted {deleted_count} auth accounts.")
+        return True
+    except Exception as e:
+        print(f"Error clearing auth accounts: {e}")
+        return False
+
 # Create auth accounts for all users in Firestore
 def create_auth_accounts():
     # Initialize Firestore client
     db = firestore.client()
     
+    # Clear existing auth accounts first
+    clear_auth_accounts()
+    
     # Get all users from Firestore
     users_ref = db.collection('users')
     users = users_ref.get()
     
-    print(f"Found {len(users)} users in Firestore.")
+    print(f"\nFound {len(users)} users in Firestore.")
     
     # Counters for tracking progress
     created_count = 0
@@ -65,10 +88,6 @@ def create_auth_accounts():
                 password="password",
                 display_name=username
             )
-            
-            # Save the generated password to a file for reference
-            with open('generated_passwords.txt', 'a') as f:
-                f.write(f"User: {email}, Password: password\n")
             
             print(f"Created auth account for {email} with UID: {user_record.uid}")
             created_count += 1
