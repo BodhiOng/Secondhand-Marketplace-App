@@ -7,23 +7,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
-import 'home_page.dart';
-import 'my_purchases_page.dart';
-import 'my_wallet_page.dart';
+import 'seller_listing_page.dart';
+import 'seller_reviews_page.dart';
+import 'seller_wallet_page.dart';
 import 'utils/page_transitions.dart';
 
-class MyProfilePage extends StatefulWidget {
-  const MyProfilePage({super.key});
+class SellerProfilePage extends StatefulWidget {
+  const SellerProfilePage({super.key});
 
   @override
-  State<MyProfilePage> createState() => _MyProfilePageState();
+  State<SellerProfilePage> createState() => _SellerProfilePageState();
 }
 
-class _MyProfilePageState extends State<MyProfilePage> {
+class _SellerProfilePageState extends State<SellerProfilePage> {
   int _selectedIndex = 3; // Set to 3 for Profile tab
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _storeNameController = TextEditingController();
+  final TextEditingController _storeDescController = TextEditingController();
   final TextEditingController _helpSubjectController = TextEditingController();
   final TextEditingController _helpMessageController = TextEditingController();
 
@@ -35,7 +37,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   // User data
   String _profileImageUrl = '';
   String _uid = '';
-  String _role = '';
+  String _role = 'seller';
   DateTime? _joinDate;
   bool _isLoading = true;
 
@@ -53,7 +55,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
     _usernameController.dispose();
     _emailController.dispose();
     _addressController.dispose();
-
+    _storeNameController.dispose();
+    _storeDescController.dispose();
     _helpSubjectController.dispose();
     _helpMessageController.dispose();
     super.dispose();
@@ -81,8 +84,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
           _usernameController.text = userData['username'] ?? '';
           _emailController.text = userData['email'] ?? '';
           _addressController.text = userData['address'] ?? '';
+          _storeNameController.text = userData['storeName'] ?? '';
+          _storeDescController.text = userData['storeDescription'] ?? '';
           _profileImageUrl = userData['profileImageUrl'] ?? '';
-          _role = userData['role'] ?? 'user';
+          _role = userData['role'] ?? 'seller';
 
           if (userData['joinDate'] != null) {
             _joinDate = (userData['joinDate'] as Timestamp).toDate();
@@ -90,6 +95,14 @@ class _MyProfilePageState extends State<MyProfilePage> {
 
           _isLoading = false;
         });
+        
+        // Ensure user has seller role
+        if (_role != 'seller') {
+          await _firestore.collection('users').doc(_uid).update({
+            'role': 'seller',
+          });
+          _role = 'seller';
+        }
       } else {
         setState(() {
           _isLoading = false;
@@ -104,32 +117,32 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   void _onItemTapped(int index) {
-    if (index == 0) {
-      // Navigate directly to HomePage
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => const MyHomePage(title: 'Secondhand Marketplace'),
-        ),
-      );
-    } else if (index == 1) {
-      // Navigate to My Purchases page
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const MyPurchasesPage()),
-      );
-    } else if (index == 2) {
-      // Navigate to Wallet page
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const MyWalletPage()),
-      );
-    } else if (index == 3) {
-      // Already on Profile page, just update index
-      setState(() {
-        _selectedIndex = index;
-      });
+    if (index == _selectedIndex) return;
+    
+    switch (index) {
+      case 0: // Navigate to My Listings
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerListingPage()),
+        );
+        break;
+      case 1: // Navigate to Reviews
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerReviewsPage()),
+        );
+        break;
+      case 2: // Navigate to Wallet
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerWalletPage()),
+        );
+        break;
+      case 3: // Already on Profile page, just update index
+        setState(() {
+          _selectedIndex = index;
+        });
+        break;
     }
   }
 
@@ -155,149 +168,71 @@ class _MyProfilePageState extends State<MyProfilePage> {
     }
   }
 
-  // Helper method to check if a string is a base64 image
   bool _isBase64Image(String source) {
     try {
-      // Check if the string starts with a base64 image prefix
-      if (source.startsWith('data:image')) {
-        return true;
-      }
-      
-      // Check if it's a raw base64 string (without data URI scheme)
-      // This is a simple check - in production you might want more validation
-      final RegExp base64Regex = RegExp(r'^[A-Za-z0-9+/]+={0,2}$');
-      return base64Regex.hasMatch(source) && source.length % 4 == 0;
+      if (source.isEmpty) return false;
+      if (source.length % 4 != 0) return false;
+      final base64Regex = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+      if (!base64Regex.hasMatch(source)) return false;
+
+      // Try to decode it
+      base64Decode(source);
+      return true;
     } catch (e) {
       return false;
     }
   }
-  
-  // Get image provider based on source (file, network URL, or base64)
+
   ImageProvider _getImageProvider() {
     if (_profileImageFile != null) {
-      return FileImage(_profileImageFile!) as ImageProvider;
+      return FileImage(_profileImageFile!);
+    } else if (_isBase64Image(_profileImageUrl)) {
+      return MemoryImage(base64Decode(_profileImageUrl));
     } else if (_profileImageUrl.isNotEmpty) {
-      // Check if the URL is actually a base64 image
-      if (_isBase64Image(_profileImageUrl)) {
-        // If it's a data URI with prefix
-        if (_profileImageUrl.startsWith('data:image')) {
-          // Extract the base64 part from data URI
-          final String base64String = _profileImageUrl.split(',')[1];
-          return MemoryImage(base64Decode(base64String));
-        } else {
-          // If it's a raw base64 string
-          return MemoryImage(base64Decode(_profileImageUrl));
-        }
-      } else {
-        // Regular network image URL
-        return NetworkImage(_profileImageUrl) as ImageProvider;
-      }
+      return NetworkImage(_profileImageUrl);
     } else {
-      // Default profile image
-      return const AssetImage('assets/default_profile.png') as ImageProvider;
+      return const AssetImage('assets/images/default_profile.png');
     }
   }
-  
-  // Convert image to base64 or upload to Firebase Storage
-  Future<String?> _uploadProfileImage({bool useBase64 = true}) async {
-    if (_profileImageFile == null) return null;
+
+  Future<void> _uploadProfileImage({bool useBase64 = true}) async {
+    if (_profileImageFile == null) return;
 
     try {
       if (useBase64) {
         // Convert image to base64
-        final List<int> imageBytes = await _profileImageFile!.readAsBytes();
-        final String base64Image = base64Encode(imageBytes);
-        
-        // Return as data URI
-        return 'data:image/jpeg;base64,$base64Image';
+        final bytes = await _profileImageFile!.readAsBytes();
+        _profileImageUrl = base64Encode(bytes);
       } else {
-        // Upload to Firebase Storage (original implementation)
-        final String fileName =
-            'profile_${_uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final Reference storageRef = _storage.ref().child(
-          'profile_images/$fileName',
-        );
-
-        final UploadTask uploadTask = storageRef.putFile(_profileImageFile!);
-        final TaskSnapshot taskSnapshot = await uploadTask;
-
-        final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-        return downloadUrl;
+        // Upload to Firebase Storage
+        final ref = _storage.ref().child('profile_images/$_uid.jpg');
+        await ref.putFile(_profileImageFile!);
+        _profileImageUrl = await ref.getDownloadURL();
       }
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
-      return null;
     }
   }
 
   Future<void> _saveProfile() async {
-    if (_usernameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _addressController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please fill in all fields'),
-          backgroundColor: AppColors.warmCoral,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Check if username is already taken (if username was changed)
-      final QuerySnapshot usernameCheck =
-          await _firestore
-              .collection('users')
-              .where('username', isEqualTo: _usernameController.text)
-              .where(FieldPath.documentId, isNotEqualTo: _uid)
-              .get();
-
-      if (usernameCheck.docs.isNotEmpty) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Username already taken. Please choose another one.',
-              ),
-              backgroundColor: AppColors.warmCoral,
-            ),
-          );
-        }
-        return;
-      }
-
-      // Upload new profile image if selected
-      String? newImageUrl;
+      // Upload profile image if changed
       if (_profileImageFile != null) {
-        // Use base64 encoding for the profile image
-        newImageUrl = await _uploadProfileImage(useBase64: true);
+        await _uploadProfileImage();
       }
 
       // Update user data in Firestore
-      final Map<String, dynamic> updatedData = {
+      await _firestore.collection('users').doc(_uid).update({
         'username': _usernameController.text,
         'address': _addressController.text,
-      };
-
-      // Add new profile image URL if available
-      if (newImageUrl != null) {
-        updatedData['profileImageUrl'] = newImageUrl;
-        _profileImageUrl = newImageUrl;
-      }
-
-      await _firestore.collection('users').doc(_uid).update(updatedData);
-
-      setState(() {
-        _isEditing = false;
-        _isLoading = false;
+        'storeName': _storeNameController.text,
+        'storeDescription': _storeDescController.text,
+        'profileImageUrl': _profileImageUrl,
+        'role': 'seller',
       });
 
       if (mounted) {
@@ -307,12 +242,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
             backgroundColor: AppColors.mutedTeal,
           ),
         );
+
+        setState(() {
+          _isEditing = false;
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -320,94 +256,72 @@ class _MyProfilePageState extends State<MyProfilePage> {
             backgroundColor: AppColors.warmCoral,
           ),
         );
+
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
 
   Future<void> _submitHelpRequest() async {
-    if (_helpSubjectController.text.isEmpty ||
-        _helpMessageController.text.isEmpty) {
+    if (_helpSubjectController.text.isEmpty || _helpMessageController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please enter both subject and message'),
+          content: const Text('Please fill in both subject and message'),
           backgroundColor: AppColors.warmCoral,
         ),
       );
       return;
     }
 
-    // Store form data locally before async operation
-    final String subject = _helpSubjectController.text;
-    final String message = _helpMessageController.text;
-    final String username = _usernameController.text;
-    final String email = _emailController.text;
-    final String userId = _uid;
-    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Generate a unique ID for the help request
-      final String requestId = DateTime.now().millisecondsSinceEpoch.toString();
-      final Timestamp currentTimestamp = Timestamp.now();
-
-      // Save help request to Firestore supportRequests collection
-      await _firestore.collection('supportRequests').doc(requestId).set({
-        'userId': userId,
-        'username': username,
-        'email': email,
-        'subject': subject,
-        'message': message,
+      // Save help request to Firestore
+      await _firestore.collection('help_requests').add({
+        'userId': _uid,
+        'username': _usernameController.text,
+        'email': _emailController.text,
+        'subject': _helpSubjectController.text,
+        'message': _helpMessageController.text,
         'status': 'pending',
-        'createdAt': currentTimestamp,
+        'createdAt': FieldValue.serverTimestamp(),
+        'userRole': 'seller',
       });
 
-      // Also create an entry in the helpCenterContacts collection
-      await _firestore.collection('helpCenterContacts').doc(requestId).set({
-        'id': requestId,
-        'userId': userId,
-        'subject': subject,
-        'message': message,
-        'timestamp': currentTimestamp,
-      });
+      // Clear the form
+      _helpSubjectController.clear();
+      _helpMessageController.clear();
 
-      // Clear form fields and update loading state
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Your request has been submitted. We will get back to you soon.',
+            ),
+            backgroundColor: AppColors.mutedTeal,
+          ),
+        );
+
         setState(() {
-          _helpSubjectController.clear();
-          _helpMessageController.clear();
           _isLoading = false;
         });
-        
-        // Show success message only if widget is still mounted
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Your message has been sent to our support team',
-              ),
-              backgroundColor: AppColors.mutedTeal,
-            ),
-          );
-        }
       }
     } catch (e) {
-      // Update loading state if widget is still mounted
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error submitting request: $e'),
+            backgroundColor: AppColors.warmCoral,
+          ),
+        );
+
         setState(() {
           _isLoading = false;
         });
-        
-        // Show error message only if widget is still mounted
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error submitting help request: $e'),
-              backgroundColor: AppColors.warmCoral,
-            ),
-          );
-        }
       }
     }
   }
@@ -504,10 +418,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              _role == 'buyer'
-                                  ? AppColors.mutedTeal
-                                  : AppColors.softLemonYellow,
+                          color: AppColors.softLemonYellow,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
@@ -515,10 +426,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color:
-                                _role == 'buyer'
-                                    ? Colors.white
-                                    : AppColors.charcoalBlack,
+                            color: AppColors.charcoalBlack,
                           ),
                         ),
                       ),
@@ -538,7 +446,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
               ),
               const SizedBox(height: 24),
 
-              // Profile Information Section
+              // Store Information Section
               Card(
                 color: AppColors.deepSlateGray,
                 shape: RoundedRectangleBorder(
@@ -550,7 +458,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Personal Information',
+                        'Store Information',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -559,8 +467,62 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Username Field
+                      // Editing Mode
                       if (_isEditing) ...[
+                        // Store Name Field
+                        Text(
+                          'Store Name',
+                          style: TextStyle(color: AppColors.coolGray),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _storeNameController,
+                          style: TextStyle(color: AppColors.coolGray),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: AppColors.charcoalBlack,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppColors.coolGray),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.mutedTeal,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Store Description Field
+                        Text(
+                          'Store Description',
+                          style: TextStyle(color: AppColors.coolGray),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _storeDescController,
+                          style: TextStyle(color: AppColors.coolGray),
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: AppColors.charcoalBlack,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppColors.coolGray),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: AppColors.mutedTeal,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Username Field
                         Text(
                           'Username',
                           style: TextStyle(color: AppColors.coolGray),
@@ -624,8 +586,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         ),
                         const SizedBox(height: 16),
 
-                        const SizedBox(height: 16),
-
                         // Address Field
                         Text(
                           'Address',
@@ -653,6 +613,46 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         ),
                       ] else ...[
                         // Display mode (non-editing)
+                        ListTile(
+                          leading: Icon(
+                            Icons.store,
+                            color: AppColors.mutedTeal,
+                          ),
+                          title: Text(
+                            'Store Name',
+                            style: TextStyle(
+                              color: AppColors.coolGray.withAlpha(200),
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _storeNameController.text.isNotEmpty
+                                ? _storeNameController.text
+                                : 'Not set',
+                            style: TextStyle(color: AppColors.coolGray),
+                          ),
+                        ),
+                        Divider(color: AppColors.coolGray.withAlpha(50)),
+                        ListTile(
+                          leading: Icon(
+                            Icons.description,
+                            color: AppColors.mutedTeal,
+                          ),
+                          title: Text(
+                            'Store Description',
+                            style: TextStyle(
+                              color: AppColors.coolGray.withAlpha(200),
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            _storeDescController.text.isNotEmpty
+                                ? _storeDescController.text
+                                : 'Not set',
+                            style: TextStyle(color: AppColors.coolGray),
+                          ),
+                        ),
+                        Divider(color: AppColors.coolGray.withAlpha(50)),
                         ListTile(
                           leading: Icon(
                             Icons.location_on,
@@ -791,8 +791,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
               ),
               const SizedBox(height: 24),
 
-              // Removed account stats section
-
               // Logout option
               Card(
                 color: AppColors.deepSlateGray,
@@ -846,10 +844,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            label: 'My Purchases',
+            icon: Icon(Icons.inventory_2_outlined),
+            label: 'My Listings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star_outline),
+            label: 'Reviews',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_outlined),

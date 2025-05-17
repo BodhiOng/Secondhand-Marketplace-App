@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'signup_page.dart';
-import 'home_page.dart';
+import 'buyer_home_page.dart';
 import 'forgot_password_page.dart';
 import 'seller_listing_page.dart';
 import 'utils/user_role_helper.dart';

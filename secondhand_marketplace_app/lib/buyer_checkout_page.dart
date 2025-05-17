@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/cart_item.dart';
-import 'order_confirmation_page.dart';
+import 'buyer_order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> cartItems;

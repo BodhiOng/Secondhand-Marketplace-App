@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
-import 'product_details_page.dart';
+import 'buyer_product_details_page.dart';
 import 'models/product.dart';
 
-class FeaturedItemsPage extends StatefulWidget {
-  const FeaturedItemsPage({super.key});
+class CategoryPage extends StatefulWidget {
+  final String categoryName;
+
+  const CategoryPage({super.key, required this.categoryName});
 
   @override
-  FeaturedItemsPageState createState() => FeaturedItemsPageState();
+  CategoryPageState createState() => CategoryPageState();
 }
 
-class FeaturedItemsPageState extends State<FeaturedItemsPage> {
+class CategoryPageState extends State<CategoryPage> {
   final TextEditingController _searchController = TextEditingController();
   RangeValues _priceRange = const RangeValues(0, 10000);
   String _selectedCondition = 'All Conditions';
@@ -22,7 +24,7 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
 
   // Flag to track if Firebase is available
   bool _isFirebaseAvailable = true;
-  List<Product> _featuredProducts = [];
+  List<Product> _categoryProducts = [];
   bool _isLoading = true;
   
   // Map to store calculated ratings from reviews collection
@@ -45,14 +47,14 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
     // Initialize Firestore and check if it's available
     try {
       _firestore = FirebaseFirestore.instance;
-      _fetchFeaturedProducts();
+      _fetchCategoryProducts();
     } catch (e) {
       debugPrint('Error accessing Firestore: $e');
       setState(() {
         _isFirebaseAvailable = false;
         _isLoading = false;
         // If Firebase is not available, use sample data
-        _featuredProducts = _getSampleProducts();
+        _categoryProducts = _getSampleProducts();
       });
     }
   }
@@ -63,13 +65,13 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
     super.dispose();
   }
 
-  // Fetch featured products (products with highest ad boost)
-  Future<void> _fetchFeaturedProducts() async {
+  // Fetch products for the specific category
+  Future<void> _fetchCategoryProducts() async {
     if (!_isFirebaseAvailable || _firestore == null) {
       setState(() {
         _isLoading = false;
         // If Firebase is not available, use sample data
-        _featuredProducts = _getSampleProducts();
+        _categoryProducts = _getSampleProducts();
       });
       return;
     }
@@ -79,11 +81,11 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
     });
 
     try {
-      // Query products collection, order by adBoost in descending order
+      // Query products collection, filter by category
       final QuerySnapshot snapshot =
           await _firestore
               .collection('products')
-              .orderBy('adBoost', descending: true)
+              .where('category', isEqualTo: widget.categoryName.toLowerCase())
               .get();
 
       // Convert the documents to Product objects
@@ -99,20 +101,20 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
       }
 
       setState(() {
-        _featuredProducts = products;
+        _categoryProducts = products;
         _isLoading = false;
       });
     } catch (e) {
-      // Log error fetching featured products
-      debugPrint('Error fetching featured products: $e');
+      // Log error fetching category products
+      debugPrint('Error fetching category products: $e');
       setState(() {
         _isLoading = false;
         // If there's an error, use sample data
-        _featuredProducts = _getSampleProducts();
+        _categoryProducts = _getSampleProducts();
       });
     }
   }
-  
+
   // Fetch and calculate average rating for a product from reviews collection
   Future<void> _fetchProductRating(Product product) async {
     try {
@@ -132,17 +134,20 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
         
         // Calculate average rating
         double averageRating = totalRating / reviewsSnapshot.docs.length;
-        // Store calculated rating in the map
-        _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
+        
+        // Store in the map
+        setState(() {
+          _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
+        });
       }
     } catch (e) {
       debugPrint('Error fetching ratings for product ${product.id}: $e');
-      // Keep the default rating from the product document if there's an error
     }
   }
 
   // Sample products for when Firebase is not available
   List<Product> _getSampleProducts() {
+    // Filter sample products by category
     return [
       Product(
         id: '1',
@@ -194,40 +199,40 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
       ),
       Product(
         id: '4',
-        name: 'Samsung Galaxy S21',
-        description: '128GB, Phantom Black, with case and screen protector.',
-        price: 499.99,
-        imageUrl: 'https://picsum.photos/id/4/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_4',
-        seller: 'MobileDeals',
+        name: 'Wooden Dining Table',
+        description: 'Solid oak dining table, seats 6, minor scratches.',
+        price: 349.99,
+        imageUrl: 'https://picsum.photos/id/10/200/200',
+        category: 'Furniture',
+        sellerId: 'seller_5',
+        seller: 'HomeDecor',
         rating: 4.5,
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 15)),
-        stock: 3,
-        adBoost: 80.0,
+        stock: 1,
+        adBoost: 40.0,
       ),
       Product(
         id: '5',
-        name: 'iPad Air 4th Gen',
-        description: '64GB, Sky Blue, with Apple Pencil 2nd Gen.',
-        price: 449.99,
-        imageUrl: 'https://picsum.photos/id/5/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_5',
-        seller: 'TabletPro',
+        name: 'Vintage Leather Jacket',
+        description: 'Genuine leather jacket, size M, brown color.',
+        price: 199.99,
+        imageUrl: 'https://picsum.photos/id/20/200/200',
+        category: 'Clothing',
+        sellerId: 'seller_6',
+        seller: 'VintageFashion',
         rating: 4.6,
         condition: 'Good',
         listedDate: DateTime.now().subtract(const Duration(days: 7)),
-        stock: 2,
-        adBoost: 100.0,
+        stock: 1,
+        adBoost: 30.0,
       ),
-    ];
+    ].where((product) => product.category == widget.categoryName).toList();
   }
 
   // Filter the products based on selected filters
   List<Product> get filteredProducts {
-    return _featuredProducts.where((product) {
+    return _categoryProducts.where((product) {
       // Price filter
       final bool priceMatch =
           product.price >= _priceRange.start &&
@@ -259,7 +264,7 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
         title: Text(
-          'Featured Items',
+          '${widget.categoryName} Items',
           style: TextStyle(color: AppColors.coolGray),
         ),
         iconTheme: IconThemeData(color: AppColors.coolGray),
@@ -286,7 +291,7 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
               controller: _searchController,
               style: TextStyle(color: AppColors.coolGray),
               decoration: InputDecoration(
-                hintText: 'Search in featured items...',
+                hintText: 'Search in ${widget.categoryName}...',
                 hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(128)),
                 prefixIcon: Icon(Icons.search, color: AppColors.mutedTeal),
                 filled: true,
@@ -336,6 +341,7 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
                     values: _priceRange,
                     min: 0,
                     max: 10000,
+                    divisions: 20,
                     activeColor: AppColors.mutedTeal,
                     inactiveColor: AppColors.coolGray.withAlpha(100),
                     labels: RangeLabels(
@@ -425,7 +431,7 @@ class FeaturedItemsPageState extends State<FeaturedItemsPage> {
                     : filteredProducts.isEmpty
                     ? Center(
                       child: Text(
-                        'No featured items found',
+                        'No ${widget.categoryName} items found',
                         style: TextStyle(color: AppColors.coolGray),
                       ),
                     )

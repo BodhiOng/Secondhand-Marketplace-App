@@ -3,6 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'models/product.dart';
+import 'utils/page_transitions.dart';
+
+// Import seller pages (will be created)
+import 'seller_reviews_page.dart';
+import 'seller_wallet_page.dart';
+import 'seller_profile_page.dart';
 
 class SellerListingPage extends StatefulWidget {
   const SellerListingPage({super.key});
@@ -15,15 +21,57 @@ class _SellerListingPageState extends State<SellerListingPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Product> _products = [];
+  List<Product> _filteredProducts = [];
   bool _isLoading = true;
   String _errorMessage = '';
   String? _sellerId;
+  int _selectedIndex = 0; // Default to My Listings tab
+  
+  // Search functionality
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _sellerId = _auth.currentUser?.uid;
     _fetchSellerProducts();
+    
+    // Add listener for search functionality
+    _searchController.addListener(_filterProducts);
+  }
+  
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterProducts);
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  // Filter products based on search query
+  void _filterProducts() {
+    final query = _searchController.text.toLowerCase();
+    
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = List.from(_products);
+      } else {
+        _filteredProducts = _products.where((product) {
+          return product.name.toLowerCase().contains(query) ||
+                 product.description.toLowerCase().contains(query) ||
+                 product.category.toLowerCase().contains(query);
+        }).toList();
+      }
+    });
+  }
+  
+  // Clear search and reset filtered products
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _isSearching = false;
+      _filteredProducts = List.from(_products);
+    });
   }
 
   // Fetch products for the current seller
@@ -53,6 +101,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
 
       setState(() {
         _products = fetchedProducts;
+        _filteredProducts = List.from(fetchedProducts);
         _isLoading = false;
       });
     } catch (e) {
@@ -84,6 +133,37 @@ class _SellerListingPageState extends State<SellerListingPage> {
     }
   }
 
+  // Handle bottom navigation
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+    
+    switch (index) {
+      case 0: // Already on My Listings
+        setState(() {
+          _selectedIndex = index;
+        });
+        break;
+      case 1: // Navigate to Reviews
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerReviewsPage()),
+        );
+        break;
+      case 2: // Navigate to Wallet
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerWalletPage()),
+        );
+        break;
+      case 3: // Navigate to Profile
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerProfilePage()),
+        );
+        break;
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,8 +171,33 @@ class _SellerListingPageState extends State<SellerListingPage> {
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
         foregroundColor: AppColors.coolGray,
-        title: const Text('My Products'),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: TextStyle(color: AppColors.coolGray),
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  hintStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.5)),
+                  border: InputBorder.none,
+                ),
+              )
+            : const Text('My Products'),
         actions: [
+          // Search icon/close button
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _clearSearch();
+                } else {
+                  _isSearching = true;
+                }
+              });
+            },
+          ),
+          // Add product button
           IconButton(
             icon: const Icon(Icons.add),
             onPressed: () {
@@ -172,15 +277,68 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   : RefreshIndicator(
                       onRefresh: _fetchSellerProducts,
                       color: AppColors.mutedTeal,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _products.length,
-                        itemBuilder: (context, index) {
-                          final product = _products[index];
-                          return _buildProductCard(product);
-                        },
-                      ),
+                      child: _filteredProducts.isEmpty && _searchController.text.isNotEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: AppColors.coolGray.withOpacity(0.5),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No products match "${_searchController.text}"',
+                                  style: TextStyle(color: AppColors.coolGray),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: _clearSearch,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.mutedTeal,
+                                  ),
+                                  child: const Text('Clear Search'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = _filteredProducts[index];
+                              return _buildProductCard(product);
+                            },
+                          ),
                     ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.inventory_2_outlined),
+            label: 'My Listings',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star_outline),
+            label: 'Reviews',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
+        showUnselectedLabels: true,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+      ),
     );
   }
 

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
-import 'home_page.dart';
-import 'my_purchases_page.dart';
-import 'my_profile_page.dart';
+import 'buyer_home_page.dart';
+import 'buyer_purchases_page.dart';
+import 'buyer_profile_page.dart';
 import 'utils/page_transitions.dart';
 
 class MyWalletPage extends StatefulWidget {

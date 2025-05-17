@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
-import 'product_details_page.dart';
+import 'buyer_product_details_page.dart';
 import 'models/product.dart';
 
-class CategoryPage extends StatefulWidget {
-  final String categoryName;
+class SearchResultsPage extends StatefulWidget {
+  final String searchQuery;
 
-  const CategoryPage({super.key, required this.categoryName});
+  const SearchResultsPage({super.key, required this.searchQuery});
 
   @override
-  CategoryPageState createState() => CategoryPageState();
+  SearchResultsPageState createState() => SearchResultsPageState();
 }
 
-class CategoryPageState extends State<CategoryPage> {
+class SearchResultsPageState extends State<SearchResultsPage> {
   final TextEditingController _searchController = TextEditingController();
   RangeValues _priceRange = const RangeValues(0, 10000);
   String _selectedCondition = 'All Conditions';
@@ -24,7 +24,7 @@ class CategoryPageState extends State<CategoryPage> {
 
   // Flag to track if Firebase is available
   bool _isFirebaseAvailable = true;
-  List<Product> _categoryProducts = [];
+  List<Product> _searchResults = [];
   bool _isLoading = true;
   
   // Map to store calculated ratings from reviews collection
@@ -40,21 +40,103 @@ class CategoryPageState extends State<CategoryPage> {
     'Poor',
   ];
 
+  // For when Firebase is not available
+  final List<Product> _sampleProducts = [
+    Product(
+      id: '1',
+      name: 'iPhone 13 Pro',
+      description:
+          'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
+      price: 699.99,
+      imageUrl: 'https://picsum.photos/id/1/200/200',
+      category: 'Electronics',
+      sellerId: 'seller_1',
+      seller: 'TechGuru',
+      rating: 4.8,
+      condition: 'Like New',
+      listedDate: DateTime.now().subtract(const Duration(days: 5)),
+      stock: 2,
+      adBoost: 120.0,
+    ),
+    Product(
+      id: '2',
+      name: 'Sony WH-1000XM4 Headphones',
+      description:
+          'Noise cancelling headphones, black color, with original box and accessories.',
+      price: 249.99,
+      imageUrl: 'https://picsum.photos/id/2/200/200',
+      category: 'Electronics',
+      sellerId: 'seller_2',
+      seller: 'AudioPhile',
+      rating: 4.9,
+      condition: 'Good',
+      listedDate: DateTime.now().subtract(const Duration(days: 10)),
+      stock: 5,
+      adBoost: 50.0,
+    ),
+    Product(
+      id: '3',
+      name: 'MacBook Pro 2021',
+      description: 'M1 Pro chip, 16GB RAM, 512GB SSD, Space Gray, barely used.',
+      price: 1599.99,
+      imageUrl: 'https://picsum.photos/id/3/200/200',
+      category: 'Electronics',
+      sellerId: 'seller_3',
+      seller: 'AppleFan',
+      rating: 4.7,
+      condition: 'Like New',
+      listedDate: DateTime.now().subtract(const Duration(days: 3)),
+      stock: 1,
+      adBoost: 200.0,
+    ),
+    Product(
+      id: '4',
+      name: 'Samsung Galaxy S21',
+      description: '128GB, Phantom Black, with case and screen protector.',
+      price: 499.99,
+      imageUrl: 'https://picsum.photos/id/4/200/200',
+      category: 'Electronics',
+      sellerId: 'seller_4',
+      seller: 'MobileDeals',
+      rating: 4.5,
+      condition: 'Good',
+      listedDate: DateTime.now().subtract(const Duration(days: 15)),
+      stock: 3,
+      adBoost: 80.0,
+    ),
+    Product(
+      id: '5',
+      name: 'iPad Air 4th Gen',
+      description: '64GB, Sky Blue, with Apple Pencil 2nd Gen.',
+      price: 449.99,
+      imageUrl: 'https://picsum.photos/id/5/200/200',
+      category: 'Electronics',
+      sellerId: 'seller_5',
+      seller: 'TabletPro',
+      rating: 4.6,
+      condition: 'Good',
+      listedDate: DateTime.now().subtract(const Duration(days: 7)),
+      stock: 2,
+      adBoost: 100.0,
+    ),
+  ];
+
   @override
   void initState() {
     super.initState();
+    _searchController.text = widget.searchQuery;
 
     // Initialize Firestore and check if it's available
     try {
       _firestore = FirebaseFirestore.instance;
-      _fetchCategoryProducts();
+      _performSearch();
     } catch (e) {
       debugPrint('Error accessing Firestore: $e');
       setState(() {
         _isFirebaseAvailable = false;
         _isLoading = false;
         // If Firebase is not available, use sample data
-        _categoryProducts = _getSampleProducts();
+        _searchResults = _filterSampleProducts();
       });
     }
   }
@@ -65,13 +147,23 @@ class CategoryPageState extends State<CategoryPage> {
     super.dispose();
   }
 
-  // Fetch products for the specific category
-  Future<void> _fetchCategoryProducts() async {
+  // Filter sample products based on search query
+  List<Product> _filterSampleProducts() {
+    final String query = _searchController.text.toLowerCase();
+    return _sampleProducts.where((product) {
+      return product.name.toLowerCase().contains(query) ||
+          product.description.toLowerCase().contains(query) ||
+          product.category.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  // Perform search using Firestore
+  Future<void> _performSearch() async {
     if (!_isFirebaseAvailable || _firestore == null) {
       setState(() {
         _isLoading = false;
         // If Firebase is not available, use sample data
-        _categoryProducts = _getSampleProducts();
+        _searchResults = _filterSampleProducts();
       });
       return;
     }
@@ -81,36 +173,50 @@ class CategoryPageState extends State<CategoryPage> {
     });
 
     try {
-      // Query products collection, filter by category
-      final QuerySnapshot snapshot =
+      final String query = _searchController.text.toLowerCase();
+
+      // Get all products (or a reasonable subset)
+      final QuerySnapshot allProducts =
           await _firestore
               .collection('products')
-              .where('category', isEqualTo: widget.categoryName.toLowerCase())
+              .limit(100) // Limit to prevent performance issues
               .get();
 
-      // Convert the documents to Product objects
-      final List<Product> products =
-          snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return Product.fromFirestore(data, doc.id);
-          }).toList();
-      
+      final List<Product> products = [];
+
+      for (final doc in allProducts.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final id = doc.id;
+        final product = Product.fromFirestore(data, id);
+
+        // Client-side filtering for partial matches
+        if (product.name.toLowerCase().contains(query) ||
+            product.description.toLowerCase().contains(query) ||
+            product.category.toLowerCase().contains(query)) {
+          products.add(product);
+        }
+      }
+
       // Fetch ratings for each product from reviews collection
       for (var product in products) {
         await _fetchProductRating(product);
       }
 
+      // Sort by listedDate, newest first
+      products.sort((a, b) {
+        return b.listedDate.compareTo(a.listedDate); // Newest first
+      });
+
       setState(() {
-        _categoryProducts = products;
+        _searchResults = products;
         _isLoading = false;
       });
     } catch (e) {
-      // Log error fetching category products
-      debugPrint('Error fetching category products: $e');
+      debugPrint('Error searching products: $e');
       setState(() {
         _isLoading = false;
         // If there's an error, use sample data
-        _categoryProducts = _getSampleProducts();
+        _searchResults = _filterSampleProducts();
       });
     }
   }
@@ -134,105 +240,18 @@ class CategoryPageState extends State<CategoryPage> {
         
         // Calculate average rating
         double averageRating = totalRating / reviewsSnapshot.docs.length;
-        
-        // Store in the map
-        setState(() {
-          _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
-        });
+        // Store calculated rating in the map
+        _calculatedRatings[product.id] = double.parse(averageRating.toStringAsFixed(1));
       }
     } catch (e) {
       debugPrint('Error fetching ratings for product ${product.id}: $e');
+      // Keep the default rating from the product document if there's an error
     }
   }
 
-  // Sample products for when Firebase is not available
-  List<Product> _getSampleProducts() {
-    // Filter sample products by category
-    return [
-      Product(
-        id: '1',
-        name: 'iPhone 13 Pro',
-        description:
-            'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
-        price: 699.99,
-        imageUrl: 'https://picsum.photos/id/1/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_1',
-        seller: 'TechGuru',
-        rating: 4.8,
-        condition: 'Like New',
-        listedDate: DateTime.now().subtract(const Duration(days: 5)),
-        stock: 2,
-        adBoost: 120.0,
-      ),
-      Product(
-        id: '2',
-        name: 'Sony WH-1000XM4 Headphones',
-        description:
-            'Noise cancelling headphones, black color, with original box and accessories.',
-        price: 249.99,
-        imageUrl: 'https://picsum.photos/id/2/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_2',
-        seller: 'AudioPhile',
-        rating: 4.9,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 10)),
-        stock: 5,
-        adBoost: 50.0,
-      ),
-      Product(
-        id: '3',
-        name: 'MacBook Pro 2021',
-        description:
-            'M1 Pro chip, 16GB RAM, 512GB SSD, Space Gray, barely used.',
-        price: 1599.99,
-        imageUrl: 'https://picsum.photos/id/3/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_3',
-        seller: 'AppleFan',
-        rating: 4.7,
-        condition: 'Like New',
-        listedDate: DateTime.now().subtract(const Duration(days: 3)),
-        stock: 1,
-        adBoost: 200.0,
-      ),
-      Product(
-        id: '4',
-        name: 'Wooden Dining Table',
-        description: 'Solid oak dining table, seats 6, minor scratches.',
-        price: 349.99,
-        imageUrl: 'https://picsum.photos/id/10/200/200',
-        category: 'Furniture',
-        sellerId: 'seller_5',
-        seller: 'HomeDecor',
-        rating: 4.5,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 15)),
-        stock: 1,
-        adBoost: 40.0,
-      ),
-      Product(
-        id: '5',
-        name: 'Vintage Leather Jacket',
-        description: 'Genuine leather jacket, size M, brown color.',
-        price: 199.99,
-        imageUrl: 'https://picsum.photos/id/20/200/200',
-        category: 'Clothing',
-        sellerId: 'seller_6',
-        seller: 'VintageFashion',
-        rating: 4.6,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 7)),
-        stock: 1,
-        adBoost: 30.0,
-      ),
-    ].where((product) => product.category == widget.categoryName).toList();
-  }
-
-  // Filter the products based on selected filters
-  List<Product> get filteredProducts {
-    return _categoryProducts.where((product) {
+  // Filter the search results based on selected filters
+  List<Product> get filteredResults {
+    return _searchResults.where((product) {
       // Price filter
       final bool priceMatch =
           product.price >= _priceRange.start &&
@@ -243,17 +262,7 @@ class CategoryPageState extends State<CategoryPage> {
           _selectedCondition == 'All Conditions' ||
           product.condition == _selectedCondition;
 
-      // Search filter (if search text is entered)
-      final bool searchMatch =
-          _searchController.text.isEmpty ||
-          product.name.toLowerCase().contains(
-            _searchController.text.toLowerCase(),
-          ) ||
-          product.description.toLowerCase().contains(
-            _searchController.text.toLowerCase(),
-          );
-
-      return priceMatch && conditionMatch && searchMatch;
+      return priceMatch && conditionMatch;
     }).toList();
   }
 
@@ -263,136 +272,144 @@ class CategoryPageState extends State<CategoryPage> {
       backgroundColor: AppColors.charcoalBlack,
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          '${widget.categoryName} Items',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        iconTheme: IconThemeData(color: AppColors.coolGray),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _showFilterOptions ? Icons.filter_list_off : Icons.filter_list,
-              color: AppColors.coolGray,
+        foregroundColor: AppColors.coolGray,
+        automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            IconButton(
+              icon: Icon(Icons.arrow_back, color: AppColors.coolGray),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            onPressed: () {
-              setState(() {
-                _showFilterOptions = !_showFilterOptions;
-              });
-            },
-          ),
-        ],
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                style: TextStyle(color: Colors.white, fontSize: 16),
+                cursorColor: AppColors.mutedTeal,
+                decoration: InputDecoration(
+                  hintText: 'Search items...',
+                  hintStyle: TextStyle(
+                    color: AppColors.coolGray.withAlpha(179),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: AppColors.deepSlateGray,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.search, color: AppColors.coolGray),
+                    onPressed: () {
+                      // Implement search functionality
+                      setState(() {});
+                    },
+                  ),
+                ),
+                onSubmitted: (value) {
+                  // Implement search functionality
+                  setState(() {});
+                },
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.filter_list, color: AppColors.coolGray),
+              onPressed: () {
+                setState(() {
+                  _showFilterOptions = !_showFilterOptions;
+                });
+              },
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: _searchController,
-              style: TextStyle(color: AppColors.coolGray),
-              decoration: InputDecoration(
-                hintText: 'Search in ${widget.categoryName}...',
-                hintStyle: TextStyle(color: AppColors.coolGray.withAlpha(128)),
-                prefixIcon: Icon(Icons.search, color: AppColors.mutedTeal),
-                filled: true,
-                fillColor: AppColors.deepSlateGray,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppColors.mutedTeal.withAlpha(100),
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: AppColors.mutedTeal.withAlpha(100),
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.mutedTeal),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {});
-              },
-            ),
-          ),
-
           // Filter options
-          if (_showFilterOptions)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 8.0,
-              ),
-              color: AppColors.deepSlateGray,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Price Range',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.coolGray,
-                    ),
-                  ),
-                  RangeSlider(
-                    values: _priceRange,
-                    min: 0,
-                    max: 10000,
-                    divisions: 20,
-                    activeColor: AppColors.mutedTeal,
-                    inactiveColor: AppColors.coolGray.withAlpha(100),
-                    labels: RangeLabels(
-                      'RM ${_priceRange.start.toStringAsFixed(0)}',
-                      'RM ${_priceRange.end.toStringAsFixed(0)}',
-                    ),
-                    onChanged: (RangeValues values) {
-                      setState(() {
-                        _priceRange = values;
-                      });
-                    },
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'RM ${_priceRange.start.toStringAsFixed(0)}',
-                        style: TextStyle(color: AppColors.coolGray),
-                      ),
-                      Text(
-                        'RM ${_priceRange.end.toStringAsFixed(0)}',
-                        style: TextStyle(color: AppColors.coolGray),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Condition',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.coolGray,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.mutedTeal.withAlpha(100),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: _showFilterOptions ? 280 : 0,
+            color: AppColors.deepSlateGray,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Filter Options',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.coolGray,
                       ),
                     ),
-                    child: DropdownButtonHideUnderline(
+                    const SizedBox(height: 16),
+
+                    // Price Range Slider
+                    Text(
+                      'Price Range',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.coolGray,
+                      ),
+                    ),
+                    RangeSlider(
+                      values: _priceRange,
+                      min: 0,
+                      max: 10000,
+                      activeColor: AppColors.mutedTeal,
+                      inactiveColor: AppColors.coolGray.withAlpha(77),
+                      labels: RangeLabels(
+                        'RM ${_priceRange.start.round()}',
+                        'RM ${_priceRange.end.round()}',
+                      ),
+                      onChanged: (RangeValues values) {
+                        setState(() {
+                          _priceRange = values;
+                        });
+                      },
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'RM ${_priceRange.start.round()}',
+                          style: TextStyle(color: AppColors.coolGray),
+                        ),
+                        Text(
+                          'RM ${_priceRange.end.round()}',
+                          style: TextStyle(color: AppColors.coolGray),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Item Condition Dropdown
+                    Text(
+                      'Item Condition',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.coolGray,
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.deepSlateGray,
+                        border: Border.all(
+                          color: AppColors.mutedTeal.withAlpha(77),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: DropdownButton<String>(
                         isExpanded: true,
                         value: _selectedCondition,
+                        underline: Container(),
+                        dropdownColor: AppColors.deepSlateGray,
                         icon: Icon(
                           Icons.arrow_drop_down,
                           color: AppColors.coolGray,
                         ),
-                        dropdownColor: AppColors.deepSlateGray,
-                        style: TextStyle(color: AppColors.coolGray),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         onChanged: (String? newValue) {
                           if (newValue != null) {
                             setState(() {
@@ -414,12 +431,13 @@ class CategoryPageState extends State<CategoryPage> {
                             }).toList(),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+          ),
 
-          // Products list
+          // Search results
           Expanded(
             child:
                 _isLoading
@@ -428,18 +446,18 @@ class CategoryPageState extends State<CategoryPage> {
                         color: AppColors.mutedTeal,
                       ),
                     )
-                    : filteredProducts.isEmpty
+                    : filteredResults.isEmpty
                     ? Center(
                       child: Text(
-                        'No ${widget.categoryName} items found',
+                        'No results found',
                         style: TextStyle(color: AppColors.coolGray),
                       ),
                     )
                     : ListView.builder(
                       padding: const EdgeInsets.all(8),
-                      itemCount: filteredProducts.length,
+                      itemCount: filteredResults.length,
                       itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
+                        final product = filteredResults[index];
                         return GestureDetector(
                           onTap: () {
                             Navigator.push(

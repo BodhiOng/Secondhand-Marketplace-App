@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'login_page.dart';
-import 'home_page.dart';
+import 'buyer_home_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});

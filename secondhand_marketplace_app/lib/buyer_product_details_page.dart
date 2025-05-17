@@ -4,10 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
 import 'models/cart_item.dart';
-import 'report_item_page.dart';
-import 'checkout_page.dart';
-import 'chat_detail_page.dart';
-import 'product_reviews_page.dart';
+import 'buyer_report_item_page.dart';
+import 'buyer_checkout_page.dart';
+import 'buyer_chat_detail_page.dart';
+import 'buyer_product_reviews_page.dart';
 import 'utils/image_utils.dart';
 
 class ProductDetailsPage extends StatefulWidget {

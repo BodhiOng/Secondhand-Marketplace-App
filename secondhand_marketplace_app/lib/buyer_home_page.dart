@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
-import 'search_results_page.dart';
-import 'product_details_page.dart';
-import 'my_purchases_page.dart';
-import 'my_wallet_page.dart';
-import 'my_profile_page.dart';
-import 'messages_page.dart';
-import 'category_page.dart';
-import 'featured_items_page.dart';
-import 'recent_items_page.dart';
+import 'buyer_search_results_page.dart';
+import 'buyer_product_details_page.dart';
+import 'buyer_purchases_page.dart';
+import 'buyer_wallet_page.dart';
+import 'buyer_profile_page.dart';
+import 'buyer_messages_page.dart';
+import 'buyer_category_page.dart';
+import 'buyer_featured_items_page.dart';
+import 'buyer_recent_items_page.dart';
 import 'models/product.dart';
 import 'utils/page_transitions.dart';
 

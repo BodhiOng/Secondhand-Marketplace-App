@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
-import 'my_purchases_page.dart';
+import 'buyer_purchases_page.dart';
 import 'utils/page_transitions.dart';
 
 class OrderConfirmationPage extends StatelessWidget {

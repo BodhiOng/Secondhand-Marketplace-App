@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'buyer_home_page.dart';
 import 'constants.dart';
 
 class LandingPage extends StatefulWidget {

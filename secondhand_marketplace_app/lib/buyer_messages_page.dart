@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
-import 'home_page.dart';
-import 'my_purchases_page.dart';
-import 'my_wallet_page.dart';
-import 'my_profile_page.dart';
+import 'buyer_home_page.dart';
+import 'buyer_purchases_page.dart';
+import 'buyer_wallet_page.dart';
+import 'buyer_profile_page.dart';
 import 'utils/page_transitions.dart';
 import 'chat_detail_page.dart';
 
