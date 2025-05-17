@@ -241,7 +241,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
       
       // Process each cart item as an order
-      final timestamp = Timestamp.now();
+      final firestoreTimestamp = Timestamp.now();
       final batch = _firestore.batch();
       
       // Update wallet balance
@@ -252,7 +252,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       
       // Create orders
       for (var item in _cartItems) {
-        final orderId = 'order_${DateTime.now().millisecondsSinceEpoch}_${item.product.id}';
+        // Generate unique IDs with shorter format
+        final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+        final randomPart = timestamp.length > 8 ? timestamp.substring(timestamp.length - 8) : timestamp;
+        final orderId = 'order_${randomPart}';
+        final buyerTransactionId = 'transaction_${randomPart.substring(0, 8)}';
+        final sellerTransactionId = 'transaction_${(int.parse(randomPart) + 1).toString().padLeft(8, '0').substring(0, 8)}';
         
         // Add order to orders collection
         batch.set(
@@ -265,24 +270,36 @@ class _CheckoutPageState extends State<CheckoutPage> {
             'quantity': item.quantity,
             'originalPrice': item.product.price,
             'price': item.totalPrice,
-            'purchaseDate': timestamp,
-            'status': 'Processing',
+            'purchaseDate': firestoreTimestamp,
+            'status': 'Pending',
           }
         );
         
-        // Add transaction to wallet transactions
-        final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}_${item.product.id}';
+        // Add buyer transaction (negative amount)
         batch.set(
-          _firestore.collection('walletTransactions').doc(transactionId),
+          _firestore.collection('walletTransactions').doc(buyerTransactionId),
           {
-            'id': transactionId,
+            'id': buyerTransactionId,
             'userId': userId,
             'type': 'Purchase',
-            'amount': item.totalPrice,
-            'description': 'Purchase: ${item.product.name}',
+            'amount': -item.totalPrice, // Negative amount for buyer
+            'description': 'Payment for order $orderId',
             'relatedOrderId': orderId,
-            'timestamp': timestamp,
-            'status': 'Completed',
+            'timestamp': firestoreTimestamp,
+          }
+        );
+        
+        // Add seller transaction (positive amount)
+        batch.set(
+          _firestore.collection('walletTransactions').doc(sellerTransactionId),
+          {
+            'id': sellerTransactionId,
+            'userId': item.product.sellerId,
+            'type': 'Sale',
+            'amount': item.totalPrice, // Positive amount for seller
+            'description': 'Product sale',
+            'relatedOrderId': orderId,
+            'timestamp': firestoreTimestamp,
           }
         );
       }

@@ -294,7 +294,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
 
                       // Add transaction to Firestore
                       final timestamp = Timestamp.now();
-                      final transactionId = 'transaction_${DateTime.now().millisecondsSinceEpoch}';
+                      final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
                       
                       // Get description based on payment method
                       String description;
