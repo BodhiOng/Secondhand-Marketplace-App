@@ -184,12 +184,17 @@ def generate_product_data(user_ids):
             days_ago = random.randint(0, 90)
             listed_date = datetime.datetime.now() - datetime.timedelta(days=days_ago)
             
+            # Calculate minimum bargaining price (70-85% of original price)
+            min_bargain_percentage = random.uniform(0.7, 0.85)
+            min_bargain_price = round(item["price"] * min_bargain_percentage, 2)
+            
             # Create the product document
             product = {
                 "id": product_id,
                 "name": item["name"],
                 "description": item["description"],
                 "price": item["price"],
+                "minBargainPrice": min_bargain_price,
                 "imageUrl": NO_IMAGE_AVAILABLE_URL,
                 "category": category,
                 "sellerId": seller_id,
