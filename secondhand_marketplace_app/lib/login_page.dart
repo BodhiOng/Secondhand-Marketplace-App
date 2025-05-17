@@ -4,6 +4,8 @@ import 'constants.dart';
 import 'signup_page.dart';
 import 'home_page.dart';
 import 'forgot_password_page.dart';
+import 'seller_listing_page.dart';
+import 'utils/user_role_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -40,17 +42,47 @@ class LoginPageState extends State<LoginPage> {
 
       try {
         // Sign in with email and password
-        await _auth.signInWithEmailAndPassword(
+        final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-
-        // Navigate to home page on successful login
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const MyHomePage(title: 'ThriftNest')),
-          );
+        
+        // Check user role
+        final User? user = userCredential.user;
+        if (user != null && mounted) {
+          // Check if the user ID contains 'seller' (for testing purposes)
+          final bool isSellerByUserId = user.uid.toLowerCase().contains('seller');
+          debugPrint('Login - User ID contains seller: $isSellerByUserId');
+          
+          // For testing: Ensure the user has the seller role if their ID contains 'seller'
+          // This is just for demonstration purposes
+          if (isSellerByUserId) {
+            await UserRoleHelper.ensureUserRole('seller');
+            debugPrint('Login - Ensured seller role for user with seller in ID');
+          }
+          
+          // Check if user is a seller
+          final bool isSeller = await UserRoleHelper.hasRole('seller');
+          debugPrint('Login - User is seller: $isSeller');
+          
+          if (isSeller && mounted) {
+            debugPrint('Login - Redirecting to seller listing page');
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SellerListingPage()),
+            );
+            return; // Exit early
+          } else {
+            debugPrint('Login - Not a seller, redirecting to home page');
+          }
+          
+          // Default: Navigate to home page for regular users
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const MyHomePage(title: 'ThriftNest')),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         // Handle specific auth errors
