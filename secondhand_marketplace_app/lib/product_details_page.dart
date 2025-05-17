@@ -6,6 +6,7 @@ import 'models/cart_item.dart';
 import 'report_item_page.dart';
 import 'checkout_page.dart';
 import 'chat_detail_page.dart';
+import 'product_reviews_page.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -487,7 +488,18 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductReviewsPage(
+                                    product: widget.product,
+                                    averageRating: _productRating,
+                                    reviewCount: _reviewCount,
+                                  ),
+                                ),
+                              );
+                            },
                             child: Text(
                               'View All',
                               style: TextStyle(color: AppColors.mutedTeal),
