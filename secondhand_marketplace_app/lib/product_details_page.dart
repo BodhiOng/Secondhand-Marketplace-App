@@ -299,18 +299,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () {
-              // Navigate to checkout page with empty cart
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CheckoutPage(cartItems: []),
-                ),
-              );
-            },
-          ),
+
           IconButton(
             icon: const Icon(Icons.flag_outlined, color: AppColors.coolGray),
             onPressed: () {
@@ -611,54 +600,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   ),
                   const SizedBox(width: 8),
 
-                  // Add to Cart Button
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Create a cart item with the current product
-                        final cartItem = CartItem(product: widget.product);
 
-                        // Show confirmation
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${widget.product.name} added to cart',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            backgroundColor: AppColors.mutedTeal,
-                            action: SnackBarAction(
-                              label: 'VIEW CART',
-                              textColor: Colors.white,
-                              onPressed: () {
-                                // Navigate to checkout page with the item
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            CheckoutPage(cartItems: [cartItem]),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.deepSlateGray,
-                        foregroundColor: AppColors.coolGray,
-                        side: BorderSide(color: AppColors.mutedTeal),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text('Add to Cart'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
 
                   // Buy Now Button
                   Expanded(
-                    flex: 2,
+                    flex: 3,
                     child: ElevatedButton(
                       onPressed: () {
                         // Create a cart item with the current product
@@ -686,7 +632,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
 
                   // Bargain Button
                   Expanded(
-                    flex: 2,
+                    flex: 3,
                     child: ElevatedButton(
                       onPressed: _showBargainBottomSheet,
                       style: ElevatedButton.styleFrom(

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/cart_item.dart';
+import 'models/product.dart';
 import 'order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -15,11 +20,96 @@ class CheckoutPage extends StatefulWidget {
 class _CheckoutPageState extends State<CheckoutPage> {
   bool _isEditMode = false;
   late List<CartItem> _cartItems;
+  bool _isLoading = false;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
   void initState() {
     super.initState();
     _cartItems = List.from(widget.cartItems);
+    // Save cart items to local storage whenever they are loaded
+    _saveCartItemsToLocalStorage();
+  }
+  
+  // Save cart items to local storage
+  Future<void> _saveCartItemsToLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = _auth.currentUser?.uid ?? 'guest';
+      
+      // Convert cart items to JSON
+      final List<Map<String, dynamic>> cartItemsJson = _cartItems.map((item) {
+        return {
+          'productId': item.product.id,
+          'name': item.product.name,
+          'price': item.product.price,
+          'imageUrl': item.product.imageUrl,
+          'condition': item.product.condition,
+          'sellerId': item.product.sellerId,
+          'category': item.product.category,
+          'quantity': item.quantity,
+          'isSelected': item.isSelected,
+        };
+      }).toList();
+      
+      // Save to shared preferences
+      await prefs.setString('cart_$userId', jsonEncode(cartItemsJson));
+      debugPrint('Cart saved to local storage: ${_cartItems.length} items');
+    } catch (e) {
+      debugPrint('Error saving cart items: $e');
+    }
+  }
+  
+  // Load cart items from local storage
+  static Future<List<CartItem>> loadCartItemsFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = FirebaseAuth.instance.currentUser?.uid ?? 'guest';
+      
+      final String? cartItemsJson = prefs.getString('cart_$userId');
+      if (cartItemsJson == null) {
+        return [];
+      }
+      
+      // Parse JSON
+      final List<dynamic> decodedJson = jsonDecode(cartItemsJson);
+      
+      // Convert to CartItem objects
+      return decodedJson.map((item) {
+        return CartItem(
+          product: Product(
+            id: item['productId'] ?? '',
+            name: item['name'] ?? '',
+            description: 'Product from cart', // Default description
+            price: (item['price'] ?? 0).toDouble(),
+            imageUrl: item['imageUrl'] ?? '',
+            condition: item['condition'] ?? 'Used',
+            sellerId: item['sellerId'] ?? '',
+            category: item['category'] ?? 'Other',
+            listedDate: DateTime.now(),
+            stock: item['quantity'] ?? 1,
+            adBoost: 0.0,
+          ),
+          quantity: item['quantity'] ?? 1,
+          isSelected: item['isSelected'] ?? false,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error loading cart items: $e');
+      return [];
+    }
+  }
+  
+  // Clear cart items from local storage
+  Future<void> _clearCartItemsFromLocalStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = _auth.currentUser?.uid ?? 'guest';
+      await prefs.remove('cart_$userId');
+    } catch (e) {
+      debugPrint('Error clearing cart items: $e');
+    }
   }
 
   // Calculate total price of all items in cart
@@ -44,6 +134,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void _deleteSelectedItems() {
     setState(() {
       _cartItems.removeWhere((item) => item.isSelected);
+      _saveCartItemsToLocalStorage();
     });
   }
 
@@ -53,6 +144,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       int newQuantity = _cartItems[index].quantity + change;
       if (newQuantity > 0) {
         _cartItems[index].quantity = newQuantity;
+        _saveCartItemsToLocalStorage();
       } else {
         // Show confirmation dialog before removing item
         _showRemoveItemDialog(index);
@@ -87,6 +179,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             onPressed: () {
               setState(() {
                 _cartItems.removeAt(index);
+                _saveCartItemsToLocalStorage();
               });
               Navigator.pop(context);
             },
@@ -101,14 +194,124 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   // Proceed to checkout
-  void _proceedToCheckout() {
-    // Navigate to the order confirmation page
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const OrderConfirmationPage(),
-      ),
-    );                                        
+  void _proceedToCheckout() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You need to be logged in to checkout')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      // Get user's wallet balance
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User profile not found')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final walletBalance = (userData['walletBalance'] ?? 0.0).toDouble();
+      
+      // Check if wallet has enough balance
+      if (walletBalance < _totalPrice) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Insufficient wallet balance. Please top up your wallet.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+      
+      // Process each cart item as an order
+      final timestamp = Timestamp.now();
+      final batch = _firestore.batch();
+      
+      // Update wallet balance
+      batch.update(
+        _firestore.collection('users').doc(userId),
+        {'walletBalance': FieldValue.increment(-_totalPrice)}
+      );
+      
+      // Create orders
+      for (var item in _cartItems) {
+        final orderId = 'order_${DateTime.now().millisecondsSinceEpoch}_${item.product.id}';
+        
+        // Add order to orders collection
+        batch.set(
+          _firestore.collection('orders').doc(orderId),
+          {
+            'id': orderId,
+            'buyerId': userId,
+            'sellerId': item.product.sellerId,
+            'productId': item.product.id,
+            'quantity': item.quantity,
+            'originalPrice': item.product.price,
+            'price': item.totalPrice,
+            'purchaseDate': timestamp,
+            'status': 'Processing',
+          }
+        );
+        
+        // Add transaction to wallet transactions
+        final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}_${item.product.id}';
+        batch.set(
+          _firestore.collection('walletTransactions').doc(transactionId),
+          {
+            'id': transactionId,
+            'userId': userId,
+            'type': 'Purchase',
+            'amount': item.totalPrice,
+            'description': 'Purchase: ${item.product.name}',
+            'relatedOrderId': orderId,
+            'timestamp': timestamp,
+            'status': 'Completed',
+          }
+        );
+      }
+      
+      // Commit all operations
+      await batch.commit();
+      
+      // Clear cart from local storage
+      await _clearCartItemsFromLocalStorage();
+      
+      // Navigate to the order confirmation page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const OrderConfirmationPage(),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Error during checkout: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during checkout: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -347,9 +550,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ],
       ),
       child: SafeArea(
-        child: _isEditMode
-            ? _buildEditModeBottomBar()
-            : _buildCheckoutBottomBar(),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _isEditMode
+                ? _buildEditModeBottomBar()
+                : _buildCheckoutBottomBar(),
       ),
     );
   }

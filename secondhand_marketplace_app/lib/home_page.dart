@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'search_results_page.dart';
 import 'product_details_page.dart';
-import 'checkout_page.dart';
 import 'my_purchases_page.dart';
 import 'my_wallet_page.dart';
 import 'my_profile_page.dart';
@@ -12,7 +11,6 @@ import 'category_page.dart';
 import 'featured_items_page.dart';
 import 'recent_items_page.dart';
 import 'models/product.dart';
-import 'models/cart_item.dart';
 import 'utils/page_transitions.dart';
 
 // Homepage for the secondhand marketplace app
@@ -229,38 +227,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.shopping_cart_outlined,
-              color: AppColors.coolGray,
-            ),
-            onPressed: () {
-              // Create sample cart items from featured products if available
-              List<CartItem> sampleCartItems = [];
-
-              if (_featuredProducts.isNotEmpty) {
-                // Use the first two featured products if available
-                sampleCartItems.add(
-                  CartItem(product: _featuredProducts[0], quantity: 1),
-                );
-
-                if (_featuredProducts.length > 1) {
-                  sampleCartItems.add(
-                    CartItem(product: _featuredProducts[1], quantity: 2),
-                  );
-                }
-              }
-
-              // Navigate to checkout page
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) => CheckoutPage(cartItems: sampleCartItems),
-                ),
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.message_outlined, color: AppColors.coolGray),
             onPressed: () {
