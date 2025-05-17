@@ -9,8 +9,13 @@ import 'order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> cartItems;
+  final bool isBargainPurchase;
 
-  const CheckoutPage({super.key, required this.cartItems});
+  const CheckoutPage({
+    super.key, 
+    required this.cartItems,
+    this.isBargainPurchase = false,
+  });
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -73,7 +78,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // Calculate total price of all items in cart
   double get _totalPrice {
-    return _cartItems.fold(0, (sum, item) => sum + item.totalPrice);
+    return _cartItems.fold(0, (total, item) => total + item.totalPrice);
   }
 
   // Toggle edit mode
@@ -173,9 +178,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       // Get user's wallet balance
       final userDoc = await _firestore.collection('users').doc(userId).get();
       if (!userDoc.exists) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User profile not found')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('User profile not found')),
+          );
+        }
         setState(() {
           _isLoading = false;
         });
@@ -187,12 +194,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
       
       // Check if wallet has enough balance
       if (walletBalance < _totalPrice) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Insufficient wallet balance. Please top up your wallet.'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Insufficient wallet balance. Please top up your wallet.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
         setState(() {
           _isLoading = false;
         });
@@ -214,9 +223,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
         // Generate unique IDs with shorter format
         final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
         final randomPart = timestamp.length > 8 ? timestamp.substring(timestamp.length - 8) : timestamp;
-        final orderId = 'order_${randomPart}';
-        final buyerTransactionId = 'transaction_${randomPart.substring(0, 8)}';
-        final sellerTransactionId = 'transaction_${(int.parse(randomPart) + 1).toString().padLeft(8, '0').substring(0, 8)}';
+        final orderId = 'order_$randomPart';
+        final buyerTransactionId = 'transaction_$randomPart';
+        final sellerTransactionId = 'transaction_${(int.parse(randomPart) + 1).toString().padLeft(8, '0')}';
         
         // Add order to orders collection
         batch.set(
@@ -270,20 +279,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
       await _clearCartItemsFromLocalStorage();
       
       // Navigate to the order confirmation page
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const OrderConfirmationPage(),
-        ),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const OrderConfirmationPage(),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Error during checkout: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error during checkout: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error during checkout: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       setState(() {
         _isLoading = false;
       });

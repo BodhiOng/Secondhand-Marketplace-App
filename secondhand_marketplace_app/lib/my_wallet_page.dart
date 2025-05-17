@@ -322,22 +322,35 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'status': 'Completed',
                       });
                       
-                      // Refresh transaction history
-                      _fetchTransactionHistory();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('RM${amount.toStringAsFixed(2)} added to your wallet'),
-                          backgroundColor: AppColors.mutedTeal,
-                        ),
-                      );
+                      // Refresh transaction history and show success message
+                      if (!mounted) return;
+                      final currentContext = context;
+                      _fetchTransactionHistory().then((_) {
+                        if (!mounted) return;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(currentContext).showSnackBar(
+                              SnackBar(
+                                content: Text('RM${amount.toStringAsFixed(2)} added to your wallet'),
+                                backgroundColor: AppColors.mutedTeal,
+                              ),
+                            );
+                          }
+                        });
+                      });
                     }).catchError((error) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $error'),
-                          backgroundColor: AppColors.warmCoral,
-                        ),
-                      );
+                      if (!mounted) return;
+                      final errorContext = context;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(errorContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $error'),
+                              backgroundColor: AppColors.warmCoral,
+                            ),
+                          );
+                        }
+                      });
                     });
 
                     Navigator.pop(context);
@@ -527,22 +540,35 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'status': 'Completed',
                       });
                       
-                      // Refresh transaction history
-                      _fetchTransactionHistory();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('RM${amount.toStringAsFixed(2)} withdrawn from your wallet'),
-                          backgroundColor: AppColors.mutedTeal,
-                        ),
-                      );
+                      // Refresh transaction history and show success message
+                      if (!mounted) return;
+                      final currentContext = context;
+                      _fetchTransactionHistory().then((_) {
+                        if (!mounted) return;
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(currentContext).showSnackBar(
+                              SnackBar(
+                                content: Text('RM${amount.toStringAsFixed(2)} withdrawn from your wallet'),
+                                backgroundColor: AppColors.mutedTeal,
+                              ),
+                            );
+                          }
+                        });
+                      });
                     }).catchError((error) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: $error'),
-                          backgroundColor: AppColors.warmCoral,
-                        ),
-                      );
+                      if (!mounted) return;
+                      final errorContext = context;
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(errorContext).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $error'),
+                              backgroundColor: AppColors.warmCoral,
+                            ),
+                          );
+                        }
+                      });
                     });
 
                     Navigator.pop(context);

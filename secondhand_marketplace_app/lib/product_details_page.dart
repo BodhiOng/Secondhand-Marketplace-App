@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
@@ -23,8 +24,8 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   double _bargainPrice = 0;
   final TextEditingController _bargainController = TextEditingController();
 
-  // Calculate minimum price (70% of product price)
-  double get _minimumPrice => widget.product.price * 0.7;
+  // Get minimum bargain price from Firestore or fallback to 80% of product price
+  double get _minimumPrice => widget.product.minBargainPrice ?? (widget.product.price * 0.8);
 
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -51,9 +52,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _bargainPrice =
-        widget.product.price *
-        0.8; // Set initial bargain price to 80% of original
+    // Set initial bargain price to 80% of original or slightly above minimum
+    _bargainPrice = max(
+        widget.product.price * 0.8,
+        _minimumPrice + 0.01
+    );
     _bargainController.text = _bargainPrice.toStringAsFixed(2);
 
     // Fetch seller information
@@ -244,49 +247,98 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     });
   }
 
-  void _submitBargain() {
-    // Create a modified product with the bargained price
-    final bargainedProduct = Product(
-      id: widget.product.id,
-      name: widget.product.name,
-      description: widget.product.description,
-      price: _bargainPrice, // Use the bargained price
-      imageUrl: widget.product.imageUrl,
-      additionalImages: widget.product.additionalImages,
-      category: widget.product.category,
-      sellerId: widget.product.sellerId,
-      seller: widget.product.seller,
-      rating: widget.product.rating,
-      condition: widget.product.condition,
-      listedDate: widget.product.listedDate,
-      stock: widget.product.stock,
-      adBoost: widget.product.adBoost,
-    );
-
-    // Create a cart item with the bargained product
-    final cartItem = CartItem(product: bargainedProduct);
-
-    // Show confirmation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Bargain request sent for RM ${_bargainPrice.toStringAsFixed(2)}',
-          style: const TextStyle(color: Colors.white),
+  // Submit bargain and proceed to checkout
+  void _submitBargain() async {
+    // Show loading indicator
+    setState(() {
+      _showBargainSheet = false;
+    });
+    
+    // Check if the bargain price is valid
+    if (_bargainPrice < _minimumPrice) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bargain price must be at least RM${_minimumPrice.toStringAsFixed(2)}'),
+          backgroundColor: Colors.red,
         ),
-        backgroundColor: AppColors.mutedTeal,
-      ),
-    );
+      );
+      return;
+    }
+    
+    try {
+      // Create a modified product with the bargained price
+      final bargainedProduct = Product(
+        id: widget.product.id,
+        name: widget.product.name,
+        description: widget.product.description,
+        price: _bargainPrice, // Use the bargained price
+        imageUrl: widget.product.imageUrl,
+        additionalImages: widget.product.additionalImages,
+        category: widget.product.category,
+        sellerId: widget.product.sellerId,
+        seller: widget.product.seller,
+        rating: widget.product.rating,
+        condition: widget.product.condition,
+        listedDate: widget.product.listedDate,
+        stock: widget.product.stock,
+        adBoost: widget.product.adBoost,
+        minBargainPrice: widget.product.minBargainPrice,
+      );
+      
+      // Log the bargain attempt in Firestore
+      await _firestore.collection('bargains').add({
+        'productId': widget.product.id,
+        'originalPrice': widget.product.price,
+        'bargainPrice': _bargainPrice,
+        'sellerId': widget.product.sellerId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'accepted', // Auto-accepted if above minimum price
+      });
+      
+      // Create a cart item with the bargained product
+      final cartItem = CartItem(product: bargainedProduct);
 
-    // Hide the bottom sheet
-    _hideBargainBottomSheet();
+      // Show confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bargain request sent for RM ${_bargainPrice.toStringAsFixed(2)}',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.mutedTeal,
+        ),
+      );
 
-    // Navigate to checkout page with the bargained item
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CheckoutPage(cartItems: [cartItem]),
-      ),
-    );
+      // Hide the bottom sheet
+      _hideBargainBottomSheet();
+
+      // Navigate to checkout page with the bargained item
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutPage(
+            cartItems: [cartItem],
+            isBargainPurchase: true, // Flag to indicate this is a bargain purchase
+          ),
+        ),
+      );
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Bargain accepted! Proceeding to checkout.'),
+          backgroundColor: AppColors.mutedTeal,
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -752,7 +804,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       child: ElevatedButton(
                         onPressed:
                             _bargainPrice >= _minimumPrice
-                                ? _submitBargain
+                                ? () => _submitBargain()
                                 : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mutedTeal,

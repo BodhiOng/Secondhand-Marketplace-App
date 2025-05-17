@@ -10,10 +10,7 @@ import 'models/purchase_order.dart';
 class RateReviewPage extends StatefulWidget {
   final PurchaseOrder order;
 
-  const RateReviewPage({
-    Key? key,
-    required this.order,
-  }) : super(key: key);
+  const RateReviewPage({super.key, required this.order});
 
   @override
   State<RateReviewPage> createState() => _RateReviewPageState();
@@ -24,7 +21,7 @@ class _RateReviewPageState extends State<RateReviewPage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _reviewController = TextEditingController();
-  
+
   double _rating = 5.0;
   File? _selectedImage;
   bool _isSubmitting = false;
@@ -44,7 +41,7 @@ class _RateReviewPageState extends State<RateReviewPage> {
         maxHeight: 1000,
         imageQuality: 85,
       );
-      
+
       if (pickedImage != null && mounted) {
         setState(() {
           _selectedImage = File(pickedImage.path);
@@ -58,29 +55,30 @@ class _RateReviewPageState extends State<RateReviewPage> {
   // Add rating and review to order in Firestore
   Future<void> _submitRatingAndReview() async {
     if (!mounted) return;
-    
+
     try {
       setState(() {
         _isSubmitting = true;
       });
-      
+
       // Convert image to base64 if provided
       String? imageBase64;
       if (_selectedImage != null) {
         // Convert image file to base64 string
         imageBase64 = await ImageConverter.fileToBase64(_selectedImage!);
       }
-      
+
       // Update order with rating and review
       await _firestore.collection('orders').doc(widget.order.id).update({
         'rating': _rating,
-        'review': _reviewController.text.isNotEmpty ? _reviewController.text : null
+        'review':
+            _reviewController.text.isNotEmpty ? _reviewController.text : null,
       });
-      
+
       // Generate a unique review ID
-      final String reviewId = 
+      final String reviewId =
           'review_${DateTime.now().millisecondsSinceEpoch.toString().substring(0, 8)}';
-      
+
       // Add to reviews collection for product rating calculation
       await _firestore.collection('reviews').doc(reviewId).set({
         'id': reviewId,
@@ -89,41 +87,42 @@ class _RateReviewPageState extends State<RateReviewPage> {
         'reviewerId': _auth.currentUser?.uid,
         'sellerId': widget.order.product?.sellerId,
         'rating': _rating,
-        'text': _reviewController.text.isNotEmpty ? _reviewController.text : null,
+        'text':
+            _reviewController.text.isNotEmpty ? _reviewController.text : null,
         'imageUrl': imageBase64, // Store image as base64 string
         'date': FieldValue.serverTimestamp(),
       });
-      
+
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Thank you for your review!'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
-          )
+          ),
         );
-        
+
         // Return to previous screen
         Navigator.pop(context, true);
       }
     } catch (e) {
       debugPrint('Error adding rating and review: $e');
-      
+
       if (mounted) {
         setState(() {
           _isSubmitting = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to save your review. Please try again.'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
-          )
+          ),
         );
       }
     }
@@ -131,8 +130,8 @@ class _RateReviewPageState extends State<RateReviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => !_isSubmitting,
+    return PopScope(
+      canPop: !_isSubmitting,
       child: Scaffold(
         backgroundColor: AppColors.charcoalBlack,
         appBar: AppBar(
@@ -158,22 +157,23 @@ class _RateReviewPageState extends State<RateReviewPage> {
                     // Product image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: widget.order.product?.imageUrl != null
-                          ? Image.network(
-                              widget.order.product!.imageUrl,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              width: 80,
-                              height: 80,
-                              color: AppColors.deepSlateGray,
-                              child: Icon(
-                                Icons.image_not_supported,
-                                color: AppColors.coolGray,
+                      child:
+                          widget.order.product?.imageUrl != null
+                              ? Image.network(
+                                widget.order.product!.imageUrl,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                              )
+                              : Container(
+                                width: 80,
+                                height: 80,
+                                color: AppColors.deepSlateGray,
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  color: AppColors.coolGray,
+                                ),
                               ),
-                            ),
                     ),
                     const SizedBox(width: 16),
                     // Product details
@@ -191,7 +191,8 @@ class _RateReviewPageState extends State<RateReviewPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            widget.order.product?.description ?? 'No description available',
+                            widget.order.product?.description ??
+                                'No description available',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.coolGray.withAlpha(150),
@@ -221,9 +222,9 @@ class _RateReviewPageState extends State<RateReviewPage> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Rating section
               Text(
                 'How would you rate this product?',
@@ -243,8 +244,8 @@ class _RateReviewPageState extends State<RateReviewPage> {
                           ? Icons.star
                           : (index == _rating.floor() &&
                               _rating - _rating.floor() >= 0.5)
-                              ? Icons.star_half
-                              : Icons.star_border,
+                          ? Icons.star_half
+                          : Icons.star_border,
                       color: Colors.amber,
                       size: 36,
                     ),
@@ -256,9 +257,9 @@ class _RateReviewPageState extends State<RateReviewPage> {
                   );
                 }),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Review section
               Text(
                 'Write a review (optional):',
@@ -286,9 +287,9 @@ class _RateReviewPageState extends State<RateReviewPage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Image upload section
               Text(
                 'Add a photo (optional):',
@@ -302,36 +303,42 @@ class _RateReviewPageState extends State<RateReviewPage> {
               Row(
                 children: [
                   // Image preview or upload button
-                  if (_selectedImage != null) ...[  
+                  if (_selectedImage != null) ...[
                     GestureDetector(
                       onTap: () {
                         showDialog(
                           context: context,
-                          builder: (context) => Dialog.fullscreen(
-                            backgroundColor: Colors.black87,
-                            child: Stack(
-                              children: [
-                                Center(
-                                  child: InteractiveViewer(
-                                    minScale: 0.5,
-                                    maxScale: 4.0,
-                                    child: Image.file(
-                                      _selectedImage!,
-                                      fit: BoxFit.contain,
+                          builder:
+                              (context) => Dialog.fullscreen(
+                                backgroundColor: Colors.black87,
+                                child: Stack(
+                                  children: [
+                                    Center(
+                                      child: InteractiveViewer(
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child: Image.file(
+                                          _selectedImage!,
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    Positioned(
+                                      top: 40,
+                                      right: 20,
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 30,
+                                        ),
+                                        onPressed:
+                                            () => Navigator.of(context).pop(),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Positioned(
-                                  top: 40,
-                                  right: 20,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                                    onPressed: () => Navigator.of(context).pop(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
                         );
                       },
                       child: Stack(
@@ -367,7 +374,7 @@ class _RateReviewPageState extends State<RateReviewPage> {
                               },
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.7),
+                                  color: Color.fromRGBO(0, 0, 0, 0.7),
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(4),
@@ -382,7 +389,7 @@ class _RateReviewPageState extends State<RateReviewPage> {
                         ],
                       ),
                     ),
-                  ] else ...[  
+                  ] else ...[
                     InkWell(
                       onTap: _pickImage,
                       child: Container(
@@ -419,9 +426,9 @@ class _RateReviewPageState extends State<RateReviewPage> {
                   ],
                 ],
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Submit button
               SizedBox(
                 width: double.infinity,
@@ -429,29 +436,33 @@ class _RateReviewPageState extends State<RateReviewPage> {
                   onPressed: _isSubmitting ? null : _submitRatingAndReview,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.mutedTeal,
-                    disabledBackgroundColor: AppColors.mutedTeal.withOpacity(0.5),
+                    disabledBackgroundColor: Color.alphaBlend(
+                      AppColors.mutedTeal.withAlpha(128), // 50% opacity
+                      Theme.of(context).disabledColor,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.0,
+                  child:
+                      _isSubmitting
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.0,
+                            ),
+                          )
+                          : const Text(
+                            'Submit Review',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        )
-                      : const Text(
-                          'Submit Review',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
                 ),
               ),
             ],

@@ -325,12 +325,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   Future<void> _submitHelpRequest() async {
-    // Capture the build context before any async operations
-    final BuildContext capturedContext = context;
-    
     if (_helpSubjectController.text.isEmpty ||
         _helpMessageController.text.isEmpty) {
-      ScaffoldMessenger.of(capturedContext).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Please enter both subject and message'),
           backgroundColor: AppColors.warmCoral,
@@ -384,14 +381,16 @@ class _MyProfilePageState extends State<MyProfilePage> {
         });
         
         // Show success message only if widget is still mounted
-        ScaffoldMessenger.of(capturedContext).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Your message has been sent to our support team',
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Your message has been sent to our support team',
+              ),
+              backgroundColor: AppColors.mutedTeal,
             ),
-            backgroundColor: AppColors.mutedTeal,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       // Update loading state if widget is still mounted
@@ -401,12 +400,14 @@ class _MyProfilePageState extends State<MyProfilePage> {
         });
         
         // Show error message only if widget is still mounted
-        ScaffoldMessenger.of(capturedContext).showSnackBar(
-          SnackBar(
-            content: Text('Error submitting help request: $e'),
-            backgroundColor: AppColors.warmCoral,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error submitting help request: $e'),
+              backgroundColor: AppColors.warmCoral,
+            ),
+          );
+        }
       }
     }
   }
@@ -805,28 +806,33 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     style: TextStyle(color: AppColors.coolGray),
                   ),
                   onTap: () async {
-                    // Capture the build context before any async operations
-                    final BuildContext capturedContext = context;
-                    
                     // Handle logout
                     try {
                       await _auth.signOut();
-                      if (mounted) {
+                      if (!mounted) return;
+                      
+                      // Use a post-frame callback to ensure the widget is still in the tree
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
                         Navigator.pushNamedAndRemoveUntil(
-                          capturedContext,
+                          context,
                           '/',
                           (route) => false,
                         );
-                      }
+                      });
                     } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(capturedContext).showSnackBar(
+                      if (!mounted) return;
+                      
+                      // Use a post-frame callback for error handling too
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error logging out: $e'),
                             backgroundColor: AppColors.warmCoral,
                           ),
                         );
-                      }
+                      });
                     }
                   },
                 ),

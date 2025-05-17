@@ -19,9 +19,8 @@ class _ReportItemPageState extends State<ReportItemPage> {
   final _descriptionController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _isLoadingSeller = true;
+  bool _isLoading = true;
   String _sellerUsername = 'Loading...';
-  String _sellerProfileImageUrl = '';
   String _sellerId = '';
   String _currentUserId = '';
 
@@ -43,7 +42,7 @@ class _ReportItemPageState extends State<ReportItemPage> {
   Future<void> _fetchSellerInfo() async {
     try {
       setState(() {
-        _isLoadingSeller = true;
+        _isLoading = true;
       });
 
       final DocumentSnapshot userDoc =
@@ -51,29 +50,37 @@ class _ReportItemPageState extends State<ReportItemPage> {
 
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
-        setState(() {
-          _sellerUsername = userData['username'] ?? 'Unknown Seller';
-          _sellerProfileImageUrl = userData['profileImageUrl'] ??
-              'https://picsum.photos/id/1005/200/200';
-          _isLoadingSeller = false;
-        });
+        if (mounted) {
+          setState(() {
+            _sellerUsername = userData['username'] ?? 'Unknown Seller';
+            _isLoading = false;
+          });
+        }
       } else {
         // If user document doesn't exist, use default values
-        setState(() {
-          _sellerUsername = 'Seller ${_sellerId.substring(0, 4)}';
-          _isLoadingSeller = false;
-        });
+        if (mounted) {
+          setState(() {
+            _sellerUsername = 'Seller ${_sellerId.substring(0, 4)}';
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching seller info: $e');
-      setState(() {
-        _isLoadingSeller = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _submitReport() {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+      
       // Create a report document in Firestore
       _firestore.collection('reports').add({
         'reporterId': _currentUserId,
@@ -84,28 +91,40 @@ class _ReportItemPageState extends State<ReportItemPage> {
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'Pending'
       }).then((_) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Report submitted successfully'),
-            backgroundColor: AppColors.mutedTeal,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Report submitted successfully'),
+              backgroundColor: AppColors.mutedTeal,
+              duration: const Duration(seconds: 2),
+            ),
+          );
 
-        // Navigate back after a short delay
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pop(context);
-          }
-        });
+          // Navigate back after a short delay
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              Navigator.pop(context);
+            }
+          });
+        }
       }).catchError((error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error submitting report: $error'),
-            backgroundColor: AppColors.warmCoral,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error submitting report: $error'),
+              backgroundColor: AppColors.warmCoral,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       });
     }
   }
@@ -179,7 +198,7 @@ class _ReportItemPageState extends State<ReportItemPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Seller: $_sellerUsername',
+                              _isLoading ? 'Loading seller info...' : 'Seller: $_sellerUsername',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AppColors.coolGray.withAlpha(179),

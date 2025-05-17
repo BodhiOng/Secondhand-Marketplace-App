@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 
 class ImageConverter {
   /// Convert a File to base64 string with data URI scheme
@@ -33,7 +33,9 @@ class ImageConverter {
       
       return 'data:$mimeType;base64,$base64String';
     } catch (e) {
-      print('Error converting image to base64: $e');
+      if (kDebugMode) {
+        debugPrint('Error converting image to base64: $e');
+      }
       return '';
     }
   }
@@ -48,7 +50,9 @@ class ImageConverter {
       
       return base64Decode(sanitized);
     } catch (e) {
-      print('Error converting base64 to bytes: $e');
+      if (kDebugMode) {
+        debugPrint('Error converting base64 to bytes: $e');
+      }
       return Uint8List(0);
     }
   }

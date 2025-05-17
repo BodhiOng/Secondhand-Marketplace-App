@@ -16,6 +16,7 @@ class Product {
   final DateTime listedDate;
   final int stock;
   final double adBoost;
+  final double? minBargainPrice; // Minimum price for bargaining
 
   Product({
     required this.id,
@@ -32,6 +33,7 @@ class Product {
     required this.listedDate,
     required this.stock,
     required this.adBoost,
+    this.minBargainPrice,
   });
 
   // Factory constructor to create a Product from Firestore data
@@ -54,6 +56,9 @@ class Product {
               : DateTime.now(),
       stock: data['stock'] ?? 0,
       adBoost: (data['adBoost'] ?? 0).toDouble(),
+      minBargainPrice: data['minBargainPrice'] != null
+          ? (data['minBargainPrice'] as num).toDouble()
+          : null,
     );
   }
 }
