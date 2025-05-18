@@ -27,6 +27,19 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
   // Transaction history
   List<Map<String, dynamic>> _transactions = [];
   bool _isLoadingTransactions = true;
+  
+  // Helper methods for showing messages safely
+  void _showSuccessMessage(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+  
 
   @override
   void initState() {
@@ -196,11 +209,11 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                         style: TextStyle(color: AppColors.coolGray),
                         decoration: InputDecoration(
                           labelText: 'Amount (RM)',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
-                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withOpacity(0.7)),
+                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
+                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withAlpha(179)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withOpacity(0.3)),
+                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -243,7 +256,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                       Text(
                         'Payment Method',
                         style: TextStyle(
-                          color: AppColors.coolGray.withOpacity(0.7),
+                          color: AppColors.coolGray.withAlpha(179),
                           fontSize: 14,
                         ),
                       ),
@@ -324,17 +337,17 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withOpacity(0.3),
+                          color: AppColors.charcoalBlack.withAlpha(77),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.coolGray.withOpacity(0.2),
+                            color: AppColors.coolGray.withAlpha(51),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.info_outline,
-                              color: AppColors.coolGray.withOpacity(0.7),
+                              color: AppColors.coolGray.withAlpha(179),
                               size: 16,
                             ),
                             const SizedBox(width: 8),
@@ -342,7 +355,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                               child: Text(
                                 'Top-ups are usually processed instantly, but may take up to 24 hours depending on your payment method.',
                                 style: TextStyle(
-                                  color: AppColors.coolGray.withOpacity(0.7),
+                                  color: AppColors.coolGray.withAlpha(179),
                                   fontSize: 12,
                                 ),
                               ),
@@ -365,7 +378,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                     'Cancel',
                     style: TextStyle(
                       color: isProcessing
-                          ? AppColors.coolGray.withOpacity(0.5)
+                          ? AppColors.coolGray.withAlpha(128)
                           : AppColors.coolGray,
                     ),
                   ),
@@ -402,17 +415,16 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                 'status': 'Completed',
                               });
                               
-                              // Close dialog
+                              // Store amount before closing dialog
+                              final successAmount = amount;
+                              
+                              // Close the dialog first
+                              Navigator.pop(dialogContext);
+                              
+                              // Then handle the UI updates if still mounted
                               if (mounted) {
-                                Navigator.pop(dialogContext);
-                                
                                 // Show success message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Successfully added RM ${amount.toStringAsFixed(2)} to your wallet'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
+                                _showSuccessMessage('Successfully added RM ${successAmount.toStringAsFixed(2)} to your wallet');
                                 
                                 // Refresh wallet data
                                 _fetchWalletData();
@@ -437,7 +449,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.mutedTeal,
-                    disabledBackgroundColor: AppColors.mutedTeal.withOpacity(0.5),
+                    disabledBackgroundColor: AppColors.mutedTeal.withAlpha(128),
                   ),
                   child: isProcessing
                       ? const SizedBox(
@@ -490,10 +502,10 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withOpacity(0.3),
+                          color: AppColors.charcoalBlack.withAlpha(77),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.coolGray.withOpacity(0.2),
+                            color: AppColors.coolGray.withAlpha(51),
                           ),
                         ),
                         child: Column(
@@ -502,7 +514,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                             Text(
                               'Available Balance',
                               style: TextStyle(
-                                color: AppColors.coolGray.withOpacity(0.7),
+                                color: AppColors.coolGray.withAlpha(179),
                                 fontSize: 12,
                               ),
                             ),
@@ -527,11 +539,11 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                         style: TextStyle(color: AppColors.coolGray),
                         decoration: InputDecoration(
                           labelText: 'Withdrawal Amount (RM)',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
-                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withOpacity(0.7)),
+                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
+                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withAlpha(179)),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withOpacity(0.3)),
+                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -578,7 +590,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                       Text(
                         'Withdrawal Method',
                         style: TextStyle(
-                          color: AppColors.coolGray.withOpacity(0.7),
+                          color: AppColors.coolGray.withAlpha(179),
                           fontSize: 14,
                         ),
                       ),
@@ -640,16 +652,16 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                           labelText: selectedMethod == 'Bank Transfer' 
                               ? 'Bank Account Number' 
                               : 'E-Wallet Account',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
+                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
                           prefixIcon: Icon(
                             selectedMethod == 'Bank Transfer' 
                                 ? Icons.account_balance 
                                 : Icons.account_balance_wallet,
-                            color: AppColors.coolGray.withOpacity(0.7),
+                            color: AppColors.coolGray.withAlpha(179),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withOpacity(0.3)),
+                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -681,17 +693,17 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withOpacity(0.3),
+                          color: AppColors.charcoalBlack.withAlpha(77),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: AppColors.coolGray.withOpacity(0.2),
+                            color: AppColors.coolGray.withAlpha(51),
                           ),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.info_outline,
-                              color: AppColors.coolGray.withOpacity(0.7),
+                              color: AppColors.coolGray.withAlpha(179),
                               size: 16,
                             ),
                             const SizedBox(width: 8),
@@ -699,7 +711,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                               child: Text(
                                 'Withdrawals typically take 1-3 business days to process.',
                                 style: TextStyle(
-                                  color: AppColors.coolGray.withOpacity(0.7),
+                                  color: AppColors.coolGray.withAlpha(179),
                                   fontSize: 12,
                                 ),
                               ),
@@ -722,7 +734,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                     'Cancel',
                     style: TextStyle(
                       color: isProcessing
-                          ? AppColors.coolGray.withOpacity(0.5)
+                          ? AppColors.coolGray.withAlpha(128)
                           : AppColors.coolGray,
                     ),
                   ),
@@ -759,17 +771,16 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                 'status': 'Pending',
                               });
                               
-                              // Close dialog
+                              // Store amount before closing dialog
+                              final withdrawAmount = amount;
+                              
+                              // Close the dialog first
+                              Navigator.pop(dialogContext);
+                              
+                              // Then handle the UI updates if still mounted
                               if (mounted) {
-                                Navigator.pop(dialogContext);
-                                
                                 // Show success message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Withdrawal request of RM ${amount.toStringAsFixed(2)} has been submitted'),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
+                                _showSuccessMessage('Withdrawal request of RM ${withdrawAmount.toStringAsFixed(2)} has been submitted');
                                 
                                 // Refresh wallet data
                                 _fetchWalletData();
@@ -794,7 +805,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.mutedTeal,
-                    disabledBackgroundColor: AppColors.mutedTeal.withOpacity(0.5),
+                    disabledBackgroundColor: AppColors.mutedTeal.withAlpha(128),
                   ),
                   child: isProcessing
                       ? const SizedBox(
@@ -899,7 +910,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                               width: 64,
                               height: 64,
                               decoration: BoxDecoration(
-                                color: AppColors.mutedTeal.withAlpha(50),
+                                color: AppColors.mutedTeal.withValues(alpha: 50),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -1015,7 +1026,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                   children: [
                                     Icon(
                                       Icons.receipt_long,
-                                      color: AppColors.coolGray.withAlpha(150),
+                                      color: AppColors.coolGray.withValues(alpha: 150),
                                       size: 48,
                                     ),
                                     const SizedBox(height: 16),
@@ -1041,7 +1052,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: _transactions.length,
                               separatorBuilder: (context, index) => Divider(
-                                color: AppColors.coolGray.withAlpha(50),
+                                color: AppColors.coolGray.withValues(alpha: 50),
                                 height: 1,
                               ),
                               itemBuilder: (context, index) {
@@ -1053,8 +1064,8 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                 return ListTile(
                                   leading: CircleAvatar(
                                     backgroundColor: isPositive
-                                        ? AppColors.mutedTeal.withOpacity(0.2)
-                                        : AppColors.warmCoral.withOpacity(0.2),
+                                        ? AppColors.mutedTeal.withValues(alpha: 51)
+                                        : AppColors.warmCoral.withValues(alpha: 51),
                                     child: Icon(
                                       _getTransactionIcon(transaction['type'] as String),
                                       color: isPositive
@@ -1079,7 +1090,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: _getStatusColor(status).withAlpha(50),
+                                            color: _getStatusColor(status).withValues(alpha: 50),
                                             borderRadius: BorderRadius.circular(4),
                                           ),
                                           child: Text(
@@ -1094,7 +1105,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                   ),
                                   subtitle: Text(
                                     transaction['description'] as String,
-                                    style: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                                    style: TextStyle(color: AppColors.coolGray.withValues(alpha: 150)),
                                   ),
                                   trailing: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1110,7 +1121,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                       Text(
                                         _formatDate(transaction['date'] as DateTime),
                                         style: TextStyle(
-                                          color: AppColors.coolGray.withAlpha(150),
+                                          color: AppColors.coolGray.withValues(alpha: 150),
                                           fontSize: 12,
                                         ),
                                       ),
@@ -1119,12 +1130,14 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                   onTap: transaction['relatedOrderId'] != null
                                     ? () {
                                         // Navigate to order details if there's a related order
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Order ID: ${transaction['relatedOrderId']}'),
-                                            backgroundColor: AppColors.deepSlateGray,
-                                          ),
-                                        );
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Order ID: ${transaction['relatedOrderId']}'),
+                                              backgroundColor: AppColors.deepSlateGray,
+                                            ),
+                                          );
+                                        }
                                       }
                                     : null,
                                 );

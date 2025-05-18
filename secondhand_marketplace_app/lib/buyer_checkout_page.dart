@@ -106,7 +106,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void _updateQuantity(int index, int change) {
     setState(() {
       int newQuantity = _cartItems[index].quantity + change;
+      // Check if new quantity is valid (greater than 0 and not exceeding stock)
       if (newQuantity > 0) {
+        // Check if we're increasing quantity and if it exceeds available stock
+        if (change > 0 && newQuantity > _cartItems[index].product.stock) {
+          // Show error message if trying to add more than available stock
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Cannot add more. Only ${_cartItems[index].product.stock} items in stock.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+        
+        // Update quantity if it's valid
         _cartItems[index].quantity = newQuantity;
         _saveCartItemsToLocalStorage();
       } else {
@@ -226,6 +240,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final orderId = 'order_$randomPart';
         final buyerTransactionId = 'transaction_$randomPart';
         final sellerTransactionId = 'transaction_${(int.parse(randomPart) + 1).toString().padLeft(8, '0')}';
+        
+        // Get product reference to update stock
+        final productRef = _firestore.collection('products').doc(item.product.id);
+        
+        // Reduce product stock based on quantity ordered
+        batch.update(
+          productRef,
+          {'stock': FieldValue.increment(-item.quantity)}
+        );
         
         // Add order to orders collection
         batch.set(

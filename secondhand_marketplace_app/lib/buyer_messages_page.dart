@@ -5,7 +5,7 @@ import 'buyer_purchases_page.dart';
 import 'buyer_wallet_page.dart';
 import 'buyer_profile_page.dart';
 import 'utils/page_transitions.dart';
-import 'chat_detail_page.dart';
+import 'buyer_chat_detail_page.dart';
 
 class MessagesPage extends StatefulWidget {
   const MessagesPage({super.key});

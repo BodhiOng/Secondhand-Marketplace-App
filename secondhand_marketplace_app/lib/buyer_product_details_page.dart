@@ -285,59 +285,34 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
         minBargainPrice: widget.product.minBargainPrice,
       );
       
-      // Log the bargain attempt in Firestore
-      await _firestore.collection('bargains').add({
-        'productId': widget.product.id,
-        'originalPrice': widget.product.price,
-        'bargainPrice': _bargainPrice,
-        'sellerId': widget.product.sellerId,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'accepted', // Auto-accepted if above minimum price
-      });
-      
       // Create a cart item with the bargained product
       final cartItem = CartItem(product: bargainedProduct);
 
-      // Show confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Bargain request sent for RM ${_bargainPrice.toStringAsFixed(2)}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          backgroundColor: AppColors.mutedTeal,
-        ),
-      );
+      if (mounted) {
+        // Hide the bottom sheet
+        _hideBargainBottomSheet();
 
-      // Hide the bottom sheet
-      _hideBargainBottomSheet();
-
-      // Navigate to checkout page with the bargained item
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CheckoutPage(
-            cartItems: [cartItem],
-            isBargainPurchase: true, // Flag to indicate this is a bargain purchase
+        // Navigate to checkout page with the bargained item
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CheckoutPage(
+              cartItems: [cartItem],
+              isBargainPurchase: true, // Flag to indicate this is a bargain purchase
+            ),
           ),
-        ),
-      );
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Bargain accepted! Proceeding to checkout.'),
-          backgroundColor: AppColors.mutedTeal,
-        ),
-      );
+        );
+      }
     } catch (e) {
       // Show error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -671,7 +646,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 3,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: widget.product.stock > 0 ? () {
                         // Create a cart item with the current product
                         final cartItem = CartItem(product: widget.product);
 
@@ -684,13 +659,14 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                                     CheckoutPage(cartItems: [cartItem]),
                           ),
                         );
-                      },
+                      } : null, // Disable button if stock is 0
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.mutedTeal,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.mutedTeal.withAlpha(100),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text('Buy Now'),
+                      child: Text(widget.product.stock > 0 ? 'Buy Now' : 'Out of Stock'),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -699,10 +675,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 3,
                     child: ElevatedButton(
-                      onPressed: _showBargainBottomSheet,
+                      onPressed: widget.product.stock > 0 ? _showBargainBottomSheet : null, // Disable if stock is 0
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.warmCoral,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.warmCoral.withAlpha(100),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text('Bargain'),
@@ -886,9 +863,10 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           if (review['image'] != null && review['image'].isNotEmpty)
             GestureDetector(
               onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => Dialog.fullscreen(
+                if (mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog.fullscreen(
                     backgroundColor: Colors.black87,
                     child: Stack(
                       children: [
@@ -916,7 +894,8 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       ],
                     ),
                   ),
-                );
+                  );
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.only(top: 8.0),

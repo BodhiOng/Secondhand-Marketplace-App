@@ -320,7 +320,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                 children: [
                                   Icon(
                                     Icons.rate_review_outlined,
-                                    color: AppColors.coolGray.withAlpha(150),
+                                    color: AppColors.coolGray.withValues(alpha: 150),
                                     size: 48,
                                   ),
                                   const SizedBox(height: 16),
@@ -372,7 +372,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                           // Buyer avatar
                                           CircleAvatar(
                                             radius: 20,
-                                            backgroundColor: AppColors.mutedTeal.withOpacity(0.2),
+                                            backgroundColor: AppColors.mutedTeal.withValues(alpha: 51),
                                             backgroundImage: review['buyerPhotoUrl'].isNotEmpty
                                                 ? NetworkImage(review['buyerPhotoUrl'] as String)
                                                 : null,
@@ -399,7 +399,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                                 Text(
                                                   _formatDate(review['date'] as DateTime),
                                                   style: TextStyle(
-                                                    color: AppColors.coolGray.withAlpha(150),
+                                                    color: AppColors.coolGray.withValues(alpha: 150),
                                                     fontSize: 12,
                                                   ),
                                                 ),
@@ -473,7 +473,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                                             color: AppColors.deepSlateGray,
                                                             child: Icon(
                                                               Icons.image_not_supported,
-                                                              color: AppColors.coolGray.withAlpha(150),
+                                                              color: AppColors.coolGray.withValues(alpha: 150),
                                                               size: 24,
                                                             ),
                                                           );
@@ -483,7 +483,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                                         color: AppColors.deepSlateGray,
                                                         child: Icon(
                                                           Icons.image_not_supported,
-                                                          color: AppColors.coolGray.withAlpha(150),
+                                                          color: AppColors.coolGray.withValues(alpha: 150),
                                                           size: 24,
                                                         ),
                                                       ),

@@ -116,20 +116,24 @@ class _SellerListingPageState extends State<SellerListingPage> {
   Future<void> _deleteProduct(String productId) async {
     try {
       await _firestore.collection('products').doc(productId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Product deleted successfully'),
-          backgroundColor: AppColors.mutedTeal,
-        ),
-      );
-      _fetchSellerProducts(); // Refresh the list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Product deleted successfully'),
+            backgroundColor: AppColors.mutedTeal,
+          ),
+        );
+        _fetchSellerProducts(); // Refresh the list
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error deleting product: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting product: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -178,7 +182,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                 style: TextStyle(color: AppColors.coolGray),
                 decoration: InputDecoration(
                   hintText: 'Search products...',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.5)),
+                  hintStyle: TextStyle(color: AppColors.coolGray.withValues(alpha: 128)),
                   border: InputBorder.none,
                 ),
               )
@@ -202,7 +206,6 @@ class _SellerListingPageState extends State<SellerListingPage> {
             icon: const Icon(Icons.add),
             onPressed: () {
               // Navigate to add product page
-              // TODO: Implement add product page
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Add product functionality coming soon'),
@@ -247,7 +250,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                           Icon(
                             Icons.inventory,
                             size: 64,
-                            color: AppColors.coolGray.withOpacity(0.5),
+                            color: AppColors.coolGray.withValues(alpha: 128),
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -258,7 +261,6 @@ class _SellerListingPageState extends State<SellerListingPage> {
                           ElevatedButton(
                             onPressed: () {
                               // Navigate to add product page
-                              // TODO: Implement add product page
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
@@ -285,7 +287,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                                 Icon(
                                   Icons.search_off,
                                   size: 64,
-                                  color: AppColors.coolGray.withOpacity(0.5),
+                                  color: AppColors.coolGray.withValues(alpha: 128),
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
@@ -392,8 +394,8 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   ),
                   decoration: BoxDecoration(
                     color: product.stock > 0
-                        ? Colors.green.withOpacity(0.8)
-                        : Colors.red.withOpacity(0.8),
+                        ? Colors.green.withValues(alpha: 51)
+                        : Colors.red.withValues(alpha: 51),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -418,7 +420,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.8),
+                      color: Colors.amber.withValues(alpha: 51),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
@@ -482,7 +484,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.deepSlateGray,
-                        border: Border.all(color: AppColors.coolGray.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.coolGray.withValues(alpha: 77)),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -503,7 +505,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     'Min. Bargain: RM ${product.minBargainPrice!.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.coolGray.withOpacity(0.7),
+                      color: AppColors.coolGray.withValues(alpha: 179),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -523,7 +525,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       'Listed: ${_formatDate(product.listedDate)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.coolGray.withOpacity(0.7),
+                        color: AppColors.coolGray.withValues(alpha: 179),
                       ),
                     ),
                   ],
@@ -538,7 +540,6 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     OutlinedButton.icon(
                       onPressed: () {
                         // Navigate to edit product page
-                        // TODO: Implement edit product page
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Edit product functionality coming soon'),
@@ -549,7 +550,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.coolGray,
-                        side: BorderSide(color: AppColors.coolGray.withOpacity(0.5)),
+                        side: BorderSide(color: AppColors.coolGray.withValues(alpha: 128)),
                       ),
                     ),
                     const SizedBox(width: 8),
