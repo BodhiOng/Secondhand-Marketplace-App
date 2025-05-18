@@ -108,10 +108,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       // Navigate directly to HomePage
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder:
-              (context) => const MyHomePage(title: 'Secondhand Marketplace'),
-        ),
+        DarkPageReplaceRoute(page: const MyHomePage(title: 'Secondhand Marketplace')),
       );
     } else if (index == 1) {
       // Navigate to My Purchases page

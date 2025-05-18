@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 
 /// Custom page route that maintains the dark background during transitions
+/// Uses fade transition instead of slide for a smoother experience
 class DarkPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
   
@@ -9,15 +10,8 @@ class DarkPageRoute<T> extends PageRouteBuilder<T> {
       : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const begin = Offset(1.0, 0.0);
-            const end = Offset.zero;
-            const curve = Curves.easeInOut;
-            
-            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-            var offsetAnimation = animation.drive(tween);
-            
-            return SlideTransition(
-              position: offsetAnimation,
+            return FadeTransition(
+              opacity: animation,
               child: child,
             );
           },
