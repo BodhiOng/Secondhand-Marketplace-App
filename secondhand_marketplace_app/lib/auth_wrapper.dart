@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'buyer_home_page.dart';
 import 'login_page.dart';
 import 'landing_page.dart';
 import 'seller_listing_page.dart';
-import 'utils/user_role_helper.dart';
 
 /// AuthWrapper is responsible for determining whether to show the login page
 /// or the home page based on the user's authentication state.
@@ -18,7 +18,6 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _showSplash = true;
-  bool _isCheckingRole = false;
 
   @override
   void initState() {
@@ -33,63 +32,21 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  // Check user role and update state accordingly
-  Future<void> _checkUserRoleAndSetState(User user) async {
+  // Check if user is a seller by checking their role in Firestore
+  Future<bool> _isUserSeller(String uid) async {
     try {
-      // Set checking state
-      setState(() {
-        _isCheckingRole = true;
-      });
-      
-      // Check if the user ID contains 'seller' (for testing purposes)
-      final bool isSellerByUserId = user.uid.toLowerCase().contains('seller');
-      debugPrint('AuthWrapper - User ID: ${user.uid}');
-      debugPrint('AuthWrapper - User ID contains seller: $isSellerByUserId');
-      
-      // For testing: Ensure the user has the seller role if their ID contains 'seller'
-      // This is just for demonstration purposes
-      if (isSellerByUserId) {
-        await UserRoleHelper.ensureUserRole('seller');
-        debugPrint('AuthWrapper - Ensured seller role for user with seller in ID');
-        
-        // If we're still mounted, update the state
-        if (mounted) {
-          setState(() {
-            _isCheckingRole = false;
-          });
-        }
-        
-        // No need to continue checking if we already know the user is a seller
-        return;
-      }
-      
-      // Check if user is a seller using our helper
-      final bool isSeller = await UserRoleHelper.hasRole('seller');
-      debugPrint('AuthWrapper - User is seller: $isSeller');
-      
-      // Reset checking state if we're still mounted
-      if (mounted) {
-        setState(() {
-          _isCheckingRole = false;
-        });
-      }
-      
-      // If user is a seller but we didn't catch it from the ID check,
-      // we need to force a rebuild to show the seller page
-      if (isSeller && mounted) {
-        setState(() {});
-      }
+      final userDoc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (!userDoc.exists) return false;
+
+      final userRole = userDoc.data()?['role']?.toString().toLowerCase();
+      return userRole == 'seller' || userRole == 'admin';
     } catch (e) {
-      debugPrint('AuthWrapper - Error checking role: $e');
-      // In case of error, reset checking state
-      if (mounted) {
-        setState(() {
-          _isCheckingRole = false;
-        });
-      }
+      return false;
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     // Show splash screen initially
@@ -105,43 +62,33 @@ class _AuthWrapperState extends State<AuthWrapper> {
         if (snapshot.hasData) {
           // Get the current user
           final User user = snapshot.data!;
-          debugPrint('AuthWrapper build - User ID: ${user.uid}');
-          
+
           // Direct check for seller in user ID - faster than Firestore check
           final bool isSellerByUserId = user.uid.toLowerCase().contains('seller');
-          debugPrint('AuthWrapper build - User ID contains seller: $isSellerByUserId');
-          
-          // If user ID contains 'seller', redirect to seller listing page immediately
-          if (isSellerByUserId) {
-            debugPrint('AuthWrapper build - Redirecting to seller listing page based on user ID');
-            
-            // Ensure the user has the seller role in Firestore (for consistency)
-            // This is done asynchronously and doesn't block the UI
-            UserRoleHelper.ensureUserRole('seller').then((_) {
-              debugPrint('AuthWrapper build - Ensured seller role for user with seller in ID');
-            });
-            
-            return const SellerListingPage();
-          }
-          
-          // For users without 'seller' in their ID, show loading while checking role
-          if (_isCheckingRole) {
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          }
-          
-          // Start the role check process if not already started
-          if (!_isCheckingRole) {
-            _checkUserRoleAndSetState(user);
-          }
-          
-          // Default to home page while checking role
-          return const MyHomePage(title: 'ThriftNest');
+
+          // Use FutureBuilder to handle the async role check
+          return FutureBuilder<bool>(
+            future: _isUserSeller(user.uid),
+            builder: (context, roleSnapshot) {
+              // Show loading indicator while checking role
+              if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              // Check if user is a seller (either by ID or role in Firestore)
+              final isSeller = isSellerByUserId || (roleSnapshot.data ?? false);
+              if (isSeller) {
+                return const SellerListingPage();
+              }
+
+              // Default to home page for buyers
+              return const MyHomePage(title: 'ThriftNest');
+            },
+          );
         }
-        
+
         // If user is not authenticated, show login page
         return const LoginPage();
       },

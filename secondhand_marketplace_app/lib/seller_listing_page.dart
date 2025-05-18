@@ -194,7 +194,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     border: InputBorder.none,
                   ),
                 )
-                : const Text('My Products'),
+                : const Text('My Listings'),
         actions: [
           // Search icon/close button
           IconButton(
@@ -316,7 +316,10 @@ class _SellerListingPageState extends State<SellerListingPage> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.mutedTeal,
                                 ),
-                                child: const Text('Clear Search'),
+                                child: Text(
+                                  'Clear Search',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
                               ),
                             ],
                           ),

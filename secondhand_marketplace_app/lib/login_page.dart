@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
 import 'signup_page.dart';
 import 'buyer_home_page.dart';
 import 'forgot_password_page.dart';
 import 'seller_listing_page.dart';
-import 'utils/user_role_helper.dart';
+import 'admin_user_management_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -50,38 +51,43 @@ class LoginPageState extends State<LoginPage> {
         // Check user role
         final User? user = userCredential.user;
         if (user != null && mounted) {
-          // Check if the user ID contains 'seller' (for testing purposes)
-          final bool isSellerByUserId = user.uid.toLowerCase().contains('seller');
-          debugPrint('Login - User ID contains seller: $isSellerByUserId');
-          
-          // For testing: Ensure the user has the seller role if their ID contains 'seller'
-          // This is just for demonstration purposes
-          if (isSellerByUserId) {
-            await UserRoleHelper.ensureUserRole('seller');
-            debugPrint('Login - Ensured seller role for user with seller in ID');
+          // Get user document from Firestore to check role
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+              
+          if (!userDoc.exists) {
+            throw FirebaseAuthException(
+              code: 'user-not-found',
+              message: 'No user data found. Please contact support.',
+            );
           }
           
-          // Check if user is a seller
-          final bool isSeller = await UserRoleHelper.hasRole('seller');
-          debugPrint('Login - User is seller: $isSeller');
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final String userRole = userData['role']?.toLowerCase() ?? 'buyer';
           
-          if (isSeller && mounted) {
-            debugPrint('Login - Redirecting to seller listing page');
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const SellerListingPage()),
-            );
-            return; // Exit early
-          } else {
-            debugPrint('Login - Not a seller, redirecting to home page');
-          }
+          if (!mounted) return;
           
-          // Default: Navigate to home page for regular users
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const MyHomePage(title: 'ThriftNest')),
-            );
+          // Navigate based on user role
+          switch (userRole) {
+            case 'seller':
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const SellerListingPage()),
+              );
+              break;
+            case 'admin':
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const AdminUserManagementPage()),
+              );
+              break;
+            default: // buyer
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MyHomePage(title: 'ThriftNest')),
+              );
           }
         }
       } on FirebaseAuthException catch (e) {
