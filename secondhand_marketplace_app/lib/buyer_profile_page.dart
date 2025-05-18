@@ -349,11 +349,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
 
     try {
       // Generate a unique ID for the help request
-      final String requestId = DateTime.now().millisecondsSinceEpoch.toString();
       final Timestamp currentTimestamp = Timestamp.now();
 
       // Save help request to Firestore helpCenterRequests collection
-      await _firestore.collection('helpCenterRequests').doc(requestId).set({
+      await _firestore.collection('helpCenterRequests').add({
         'userId': userId,
         'username': username,
         'email': email,
@@ -376,7 +375,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Your message has been sent to our support team'),
+              content: Text(
+                'Your request has been submitted. We will get back to you soon.',
+              ),
               backgroundColor: AppColors.mutedTeal,
             ),
           );
