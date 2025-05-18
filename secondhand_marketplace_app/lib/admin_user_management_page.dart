@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
+import 'utils/image_utils.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
@@ -54,7 +55,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
           'id': doc.id,
           'username': data['username'] ?? 'Unknown User',
           'email': data['email'] ?? '',
-          'role': data['role'] ?? 'user',
+          'role': (data['role'] ?? 'buyer').toLowerCase(),
           'address': data['address'] ?? '',
           'profileImageUrl': data['profileImageUrl'] ?? '',
           'walletBalance': (data['walletBalance'] ?? 0.0).toDouble(),
@@ -96,8 +97,9 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 );
 
             final matchesRole =
-                _selectedRole == 'All' ||
-                user['role'] == _selectedRole.toLowerCase();
+                _selectedRole.toLowerCase() == 'all' ||
+                user['role'].toString().toLowerCase() ==
+                    _selectedRole.toLowerCase();
 
             return matchesSearch && matchesRole;
           }).toList();
@@ -126,25 +128,34 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Center(
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: AppColors.mutedTeal.withValues(
-                        alpha: 0.2,
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.mutedTeal.withValues(alpha: 0.2),
                       ),
-                      backgroundImage:
+                      child:
                           user['profileImageUrl'] != null &&
                                   (user['profileImageUrl'] as String).isNotEmpty
-                              ? NetworkImage(user['profileImageUrl'] as String)
-                              : null,
-                      child:
-                          (user['profileImageUrl'] == null ||
-                                  (user['profileImageUrl'] as String).isEmpty)
-                              ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: AppColors.mutedTeal,
+                              ? ClipOval(
+                                child: ImageUtils.base64ToImage(
+                                  user['profileImageUrl'] as String,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                  errorWidget: const Icon(
+                                    Icons.person,
+                                    color: AppColors.mutedTeal,
+                                    size: 64,
+                                  ),
+                                ),
                               )
-                              : null,
+                              : const Icon(
+                                Icons.person,
+                                color: AppColors.mutedTeal,
+                                size: 64,
+                              ),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -647,7 +658,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                     children: [
                       _buildRoleFilterChip('All'),
                       const SizedBox(width: 8),
-                      _buildRoleFilterChip('User'),
+                      _buildRoleFilterChip('Buyer'),
                       const SizedBox(width: 8),
                       _buildRoleFilterChip('Seller'),
                       const SizedBox(width: 8),
@@ -731,23 +742,28 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                               backgroundColor: AppColors.mutedTeal.withValues(
                                 alpha: 0.2,
                               ),
-                              backgroundImage:
+                              child:
                                   user['profileImageUrl'] != null &&
                                           (user['profileImageUrl'] as String)
                                               .isNotEmpty
-                                      ? NetworkImage(
-                                        user['profileImageUrl'] as String,
+                                      ? ClipOval(
+                                        child: ImageUtils.base64ToImage(
+                                          user['profileImageUrl'] as String,
+                                          width: 48,
+                                          height: 48,
+                                          fit: BoxFit.cover,
+                                          errorWidget: const Icon(
+                                            Icons.person,
+                                            color: AppColors.mutedTeal,
+                                            size: 32,
+                                          ),
+                                        ),
                                       )
-                                      : null,
-                              child:
-                                  (user['profileImageUrl'] == null ||
-                                          (user['profileImageUrl'] as String)
-                                              .isEmpty)
-                                      ? const Icon(
+                                      : const Icon(
                                         Icons.person,
                                         color: AppColors.mutedTeal,
-                                      )
-                                      : null,
+                                        size: 32,
+                                      ),
                             ),
                             title: Text(
                               user['username'] as String,

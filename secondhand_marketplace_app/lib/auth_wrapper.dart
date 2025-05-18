@@ -5,6 +5,7 @@ import 'buyer_home_page.dart';
 import 'login_page.dart';
 import 'landing_page.dart';
 import 'seller_listing_page.dart';
+import 'admin_user_management_page.dart';
 
 /// AuthWrapper is responsible for determining whether to show the login page
 /// or the home page based on the user's authentication state.
@@ -33,18 +34,31 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   // Check if user is a seller by checking their role in Firestore
-  Future<bool> _isUserSeller(String uid) async {
+  Future<Map<String, dynamic>?> _getUserRole(String uid) async {
     try {
       final userDoc =
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
 
-      if (!userDoc.exists) return false;
+      if (!userDoc.exists) return null;
 
-      final userRole = userDoc.data()?['role']?.toString().toLowerCase();
-      return userRole == 'seller' || userRole == 'admin';
+      return userDoc.data();
     } catch (e) {
-      return false;
+      return null;
     }
+  }
+
+  // Check if user is an admin
+  bool _isUserAdmin(Map<String, dynamic>? userData) {
+    if (userData == null) return false;
+    final userRole = userData['role']?.toString().toLowerCase();
+    return userRole == 'admin';
+  }
+
+  // Check if user is a seller
+  bool _isUserSeller(Map<String, dynamic>? userData) {
+    if (userData == null) return false;
+    final userRole = userData['role']?.toString().toLowerCase();
+    return userRole == 'seller';
   }
 
   @override
@@ -63,12 +77,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
           // Get the current user
           final User user = snapshot.data!;
 
-          // Direct check for seller in user ID - faster than Firestore check
-          final bool isSellerByUserId = user.uid.toLowerCase().contains('seller');
-
           // Use FutureBuilder to handle the async role check
-          return FutureBuilder<bool>(
-            future: _isUserSeller(user.uid),
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: _getUserRole(user.uid),
             builder: (context, roleSnapshot) {
               // Show loading indicator while checking role
               if (roleSnapshot.connectionState == ConnectionState.waiting) {
@@ -77,9 +88,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 );
               }
 
-              // Check if user is a seller (either by ID or role in Firestore)
-              final isSeller = isSellerByUserId || (roleSnapshot.data ?? false);
-              if (isSeller) {
+              final userData = roleSnapshot.data;
+
+              // Check if user is an admin
+              if (_isUserAdmin(userData)) {
+                return const AdminUserManagementPage();
+              }
+
+              // Check if user is a seller
+              if (_isUserSeller(userData) ||
+                  user.uid.toLowerCase().contains('seller')) {
                 return const SellerListingPage();
               }
 
