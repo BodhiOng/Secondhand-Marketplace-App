@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'seller_listing_page.dart';
 import 'seller_reviews_page.dart';
@@ -27,19 +28,6 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
   // Transaction history
   List<Map<String, dynamic>> _transactions = [];
   bool _isLoadingTransactions = true;
-  
-  // Helper methods for showing messages safely
-  void _showSuccessMessage(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-  
 
   @override
   void initState() {
@@ -89,7 +77,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
       });
     }
   }
-  
+
   // Fetch transaction history from Firestore
   Future<void> _fetchTransactionHistory() async {
     try {
@@ -115,7 +103,6 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
           'description': data['description'] ?? '',
           'amount': _getTransactionAmount(data['type'] as String, (data['amount'] ?? 0).toDouble()),
           'date': (data['timestamp'] as Timestamp).toDate(),
-          'status': data['status'] ?? 'Completed',
           'relatedOrderId': data['relatedOrderId'],
         });
       }
@@ -162,12 +149,12 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
           DarkPageReplaceRoute(page: const SellerReviewsPage()),
         );
         break;
-      case 2: // Already on Wallet page
+      case 2: // Already on Wallet page, just update index
         setState(() {
           _selectedIndex = index;
         });
         break;
-      case 3: // Navigate to Profile
+      case 3: // Navigate to Profile page
         Navigator.pushReplacement(
           context,
           DarkPageReplaceRoute(page: const SellerProfilePage()),
@@ -176,677 +163,13 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
     }
   }
 
-  // Show top-up dialog
-  void _showTopUpDialog() {
-    final TextEditingController amountController = TextEditingController();
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    String selectedMethod = 'Credit Card';
-    bool isProcessing = false;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppColors.deepSlateGray,
-              title: Text(
-                'Top Up Wallet',
-                style: TextStyle(color: AppColors.coolGray),
-              ),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Amount field
-                      TextFormField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: AppColors.coolGray),
-                        decoration: InputDecoration(
-                          labelText: 'Amount (RM)',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
-                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withAlpha(179)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.mutedTeal),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          errorStyle: TextStyle(color: Colors.red.shade300),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter an amount';
-                          }
-                          
-                          final double? amount = double.tryParse(value);
-                          if (amount == null) {
-                            return 'Please enter a valid number';
-                          }
-                          
-                          if (amount <= 0) {
-                            return 'Amount must be greater than 0';
-                          }
-                          
-                          if (amount > 10000) {
-                            return 'Maximum top-up amount is RM 10,000';
-                          }
-                          
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Payment method selection
-                      Text(
-                        'Payment Method',
-                        style: TextStyle(
-                          color: AppColors.coolGray.withAlpha(179),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Credit Card option
-                      RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(Icons.credit_card, color: AppColors.coolGray),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Credit Card',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                          ],
-                        ),
-                        value: 'Credit Card',
-                        groupValue: selectedMethod,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedMethod = value!;
-                          });
-                        },
-                        activeColor: AppColors.mutedTeal,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      
-                      // Bank Transfer option
-                      RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(Icons.account_balance, color: AppColors.coolGray),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Bank Transfer',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                          ],
-                        ),
-                        value: 'Bank Transfer',
-                        groupValue: selectedMethod,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedMethod = value!;
-                          });
-                        },
-                        activeColor: AppColors.mutedTeal,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      
-                      // E-Wallet option
-                      RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet, color: AppColors.coolGray),
-                            const SizedBox(width: 8),
-                            Text(
-                              'E-Wallet',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                          ],
-                        ),
-                        value: 'E-Wallet',
-                        groupValue: selectedMethod,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedMethod = value!;
-                          });
-                        },
-                        activeColor: AppColors.mutedTeal,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Note about processing time
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withAlpha(77),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.coolGray.withAlpha(51),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: AppColors.coolGray.withAlpha(179),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Top-ups are usually processed instantly, but may take up to 24 hours depending on your payment method.',
-                                style: TextStyle(
-                                  color: AppColors.coolGray.withAlpha(179),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isProcessing
-                      ? null
-                      : () {
-                          Navigator.pop(dialogContext);
-                        },
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: isProcessing
-                          ? AppColors.coolGray.withAlpha(128)
-                          : AppColors.coolGray,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: isProcessing
-                      ? null
-                      : () async {
-                          if (formKey.currentState!.validate()) {
-                            // Show processing state
-                            setDialogState(() {
-                              isProcessing = true;
-                            });
-                            
-                            try {
-                              // Get amount from controller
-                              final double amount = double.parse(amountController.text);
-                              
-                              // Simulate network delay
-                              await Future.delayed(const Duration(seconds: 2));
-                              
-                              // Add to wallet balance in Firestore
-                              await _firestore.collection('users').doc(_uid).update({
-                                'walletBalance': FieldValue.increment(amount),
-                              });
-                              
-                              // Record transaction
-                              await _firestore.collection('walletTransactions').add({
-                                'userId': _uid,
-                                'type': 'Deposit',
-                                'description': 'Top-up via $selectedMethod',
-                                'amount': amount,
-                                'timestamp': FieldValue.serverTimestamp(),
-                                'status': 'Completed',
-                              });
-                              
-                              // Store amount before closing dialog
-                              final successAmount = amount;
-                              
-                              // Close the dialog first
-                              Navigator.pop(dialogContext);
-                              
-                              // Then handle the UI updates if still mounted
-                              if (mounted) {
-                                // Show success message
-                                _showSuccessMessage('Successfully added RM ${successAmount.toStringAsFixed(2)} to your wallet');
-                                
-                                // Refresh wallet data
-                                _fetchWalletData();
-                              }
-                            } catch (e) {
-                              // Reset processing state
-                              setDialogState(() {
-                                isProcessing = false;
-                              });
-                              
-                              // Show error message
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mutedTeal,
-                    disabledBackgroundColor: AppColors.mutedTeal.withAlpha(128),
-                  ),
-                  child: isProcessing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('Confirm'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // Show withdraw dialog
-  void _showWithdrawDialog() {
-    final TextEditingController amountController = TextEditingController();
-    final TextEditingController accountController = TextEditingController();
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    String selectedMethod = 'Bank Transfer';
-    bool isProcessing = false;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppColors.deepSlateGray,
-              title: Text(
-                'Withdraw Funds',
-                style: TextStyle(color: AppColors.coolGray),
-              ),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Current balance display
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withAlpha(77),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.coolGray.withAlpha(51),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Available Balance',
-                              style: TextStyle(
-                                color: AppColors.coolGray.withAlpha(179),
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'RM ${_balance.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                color: AppColors.coolGray,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Amount field
-                      TextFormField(
-                        controller: amountController,
-                        keyboardType: TextInputType.number,
-                        style: TextStyle(color: AppColors.coolGray),
-                        decoration: InputDecoration(
-                          labelText: 'Withdrawal Amount (RM)',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
-                          prefixIcon: Icon(Icons.attach_money, color: AppColors.coolGray.withAlpha(179)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.mutedTeal),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          errorStyle: TextStyle(color: Colors.red.shade300),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter an amount';
-                          }
-                          
-                          final double? amount = double.tryParse(value);
-                          if (amount == null) {
-                            return 'Please enter a valid number';
-                          }
-                          
-                          if (amount <= 0) {
-                            return 'Amount must be greater than 0';
-                          }
-                          
-                          if (amount > _balance) {
-                            return 'Insufficient balance';
-                          }
-                          
-                          if (amount < 10) {
-                            return 'Minimum withdrawal amount is RM 10';
-                          }
-                          
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Withdrawal method selection
-                      Text(
-                        'Withdrawal Method',
-                        style: TextStyle(
-                          color: AppColors.coolGray.withAlpha(179),
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // Bank Transfer option
-                      RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(Icons.account_balance, color: AppColors.coolGray),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Bank Transfer',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                          ],
-                        ),
-                        value: 'Bank Transfer',
-                        groupValue: selectedMethod,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedMethod = value!;
-                          });
-                        },
-                        activeColor: AppColors.mutedTeal,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      
-                      // E-Wallet option
-                      RadioListTile<String>(
-                        title: Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet, color: AppColors.coolGray),
-                            const SizedBox(width: 8),
-                            Text(
-                              'E-Wallet',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                          ],
-                        ),
-                        value: 'E-Wallet',
-                        groupValue: selectedMethod,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedMethod = value!;
-                          });
-                        },
-                        activeColor: AppColors.mutedTeal,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Account field
-                      TextFormField(
-                        controller: accountController,
-                        style: TextStyle(color: AppColors.coolGray),
-                        decoration: InputDecoration(
-                          labelText: selectedMethod == 'Bank Transfer' 
-                              ? 'Bank Account Number' 
-                              : 'E-Wallet Account',
-                          labelStyle: TextStyle(color: AppColors.coolGray.withAlpha(179)),
-                          prefixIcon: Icon(
-                            selectedMethod == 'Bank Transfer' 
-                                ? Icons.account_balance 
-                                : Icons.account_balance_wallet,
-                            color: AppColors.coolGray.withAlpha(179),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.coolGray.withAlpha(77)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: AppColors.mutedTeal),
-                          ),
-                          errorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          focusedErrorBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.red),
-                          ),
-                          errorStyle: TextStyle(color: Colors.red.shade300),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return selectedMethod == 'Bank Transfer'
-                                ? 'Please enter your bank account number'
-                                : 'Please enter your e-wallet account';
-                          }
-                          return null;
-                        },
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Note about processing time
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.charcoalBlack.withAlpha(77),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.coolGray.withAlpha(51),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: AppColors.coolGray.withAlpha(179),
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Withdrawals typically take 1-3 business days to process.',
-                                style: TextStyle(
-                                  color: AppColors.coolGray.withAlpha(179),
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: isProcessing
-                      ? null
-                      : () {
-                          Navigator.pop(dialogContext);
-                        },
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: isProcessing
-                          ? AppColors.coolGray.withAlpha(128)
-                          : AppColors.coolGray,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: isProcessing
-                      ? null
-                      : () async {
-                          if (formKey.currentState!.validate()) {
-                            // Show processing state
-                            setDialogState(() {
-                              isProcessing = true;
-                            });
-                            
-                            try {
-                              // Get amount from controller
-                              final double amount = double.parse(amountController.text);
-                              
-                              // Simulate network delay
-                              await Future.delayed(const Duration(seconds: 2));
-                              
-                              // Subtract from wallet balance in Firestore
-                              await _firestore.collection('users').doc(_uid).update({
-                                'walletBalance': FieldValue.increment(-amount),
-                              });
-                              
-                              // Record transaction
-                              await _firestore.collection('walletTransactions').add({
-                                'userId': _uid,
-                                'type': 'Withdrawal',
-                                'description': 'Withdrawal via $selectedMethod to ${accountController.text}',
-                                'amount': amount,
-                                'timestamp': FieldValue.serverTimestamp(),
-                                'status': 'Pending',
-                              });
-                              
-                              // Store amount before closing dialog
-                              final withdrawAmount = amount;
-                              
-                              // Close the dialog first
-                              Navigator.pop(dialogContext);
-                              
-                              // Then handle the UI updates if still mounted
-                              if (mounted) {
-                                // Show success message
-                                _showSuccessMessage('Withdrawal request of RM ${withdrawAmount.toStringAsFixed(2)} has been submitted');
-                                
-                                // Refresh wallet data
-                                _fetchWalletData();
-                              }
-                            } catch (e) {
-                              // Reset processing state
-                              setDialogState(() {
-                                isProcessing = false;
-                              });
-                              
-                              // Show error message
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Error: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mutedTeal,
-                    disabledBackgroundColor: AppColors.mutedTeal.withAlpha(128),
-                  ),
-                  child: isProcessing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text('Confirm'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-  
   // Format date to a readable string
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays < 1) {
-      return 'Today';
-    } else if (difference.inDays < 2) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inDays < 30) {
-      return '${(difference.inDays / 7).floor()} weeks ago';
-    } else if (difference.inDays < 365) {
-      return '${(difference.inDays / 30).floor()} months ago';
-    } else {
-      return '${(difference.inDays / 365).floor()} years ago';
-    }
+    final DateFormat formatter = DateFormat('MMM d, yyyy');
+    return formatter.format(date);
   }
   
-  // Get appropriate icon for transaction type
+  // Get icon for transaction type
   IconData _getTransactionIcon(String type) {
     switch (type) {
       case 'Deposit':
@@ -861,276 +184,618 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
         return Icons.swap_horiz;
     }
   }
-  
-  // Get color based on transaction status
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Completed':
-        return Colors.green;
-      case 'Pending':
-        return Colors.amber;
-      case 'Failed':
-        return Colors.red;
-      default:
-        return AppColors.coolGray;
-    }
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.charcoalBlack,
-      appBar: AppBar(
-        backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'My Wallet',
-          style: TextStyle(color: AppColors.coolGray),
+  // Show top up dialog
+  void _showTopUpDialog() {
+    final TextEditingController amountController = TextEditingController();
+    String selectedMethod = 'Credit Card';
+    final List<String> paymentMethods = ['Credit Card', 'Online Banking', 'E-Wallet'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.deepSlateGray,
+          title: Text(
+            'Top Up Wallet',
+            style: TextStyle(color: AppColors.coolGray),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Amount input
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Amount (RM)',
+                    labelStyle: TextStyle(color: AppColors.coolGray),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.coolGray),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.mutedTeal),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    prefixText: 'RM ',
+                    prefixStyle: TextStyle(color: AppColors.coolGray),
+                  ),
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+                const SizedBox(height: 16),
+                
+                // Payment method selection
+                Text(
+                  'Payment Method',
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+                const SizedBox(height: 8),
+                
+                // Dropdown for payment method
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.coolGray),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedMethod,
+                      isExpanded: true,
+                      dropdownColor: AppColors.deepSlateGray,
+                      style: TextStyle(color: AppColors.coolGray),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
+                      items: paymentMethods.map((String method) {
+                        return DropdownMenuItem<String>(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            selectedMethod = newValue;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.coolGray),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validate amount
+                final amountText = amountController.text.trim();
+                if (amountText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter an amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final amount = double.tryParse(amountText);
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                // Close dialog
+                Navigator.pop(context);
+                
+                try {
+                  // Update user wallet balance
+                  await _firestore.collection('users').doc(_uid).update({
+                    'walletBalance': FieldValue.increment(amount),
+                  });
+                  
+                  // Add transaction record
+                  final timestamp = Timestamp.now();
+                  final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                  
+                  // Get description based on payment method
+                  String description;
+                  switch (selectedMethod) {
+                    case 'Credit Card':
+                      description = 'Card payment to wallet';
+                      break;
+                    case 'Online Banking':
+                      description = 'Online banking transfer to account';
+                      break;
+                    case 'E-Wallet':
+                      description = 'E-Wallet deposit to wallet';
+                      break;
+                    default:
+                      description = 'Added via $selectedMethod';
+                  }
+                  
+                  await _firestore.collection('walletTransactions').doc(transactionId).set({
+                    'id': transactionId,
+                    'userId': _uid,
+                    'type': 'Deposit',
+                    'amount': amount,
+                    'description': description,
+                    'timestamp': timestamp,
+                    'paymentMethod': selectedMethod,
+                  });
+                  
+                  // Refresh transaction history and show success message
+                  await _fetchWalletData();
+                  
+                  if (!mounted) return;
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Successfully topped up RM ${amount.toStringAsFixed(2)}'),
+                      backgroundColor: AppColors.mutedTeal,
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint('Error topping up wallet: $e');
+                  if (!mounted) return;
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedTeal,
+              ),
+              child: const Text(
+                'Top Up',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Balance card
-                    Card(
-                      color: AppColors.deepSlateGray,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          children: [
-                            // Wallet icon
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: AppColors.mutedTeal.withValues(alpha: 50),
-                                shape: BoxShape.circle,
+    );
+  }
+  
+  // Show withdraw dialog
+  void _showWithdrawDialog() {
+    final TextEditingController amountController = TextEditingController();
+    String selectedMethod = 'Bank Transfer';
+    final List<String> withdrawalMethods = ['Bank Transfer', 'E-Wallet', 'PayPal'];
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: AppColors.deepSlateGray,
+          title: Text(
+            'Withdraw Funds',
+            style: TextStyle(color: AppColors.coolGray),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Amount input
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Amount (RM)',
+                    labelStyle: TextStyle(color: AppColors.coolGray),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.coolGray),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: AppColors.mutedTeal),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    prefixText: 'RM ',
+                    prefixStyle: TextStyle(color: AppColors.coolGray),
+                  ),
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+                const SizedBox(height: 16),
+                
+                // Withdrawal method selection
+                Text(
+                  'Withdrawal Method',
+                  style: TextStyle(color: AppColors.coolGray),
+                ),
+                const SizedBox(height: 8),
+                
+                // Dropdown for withdrawal method
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.coolGray),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedMethod,
+                      isExpanded: true,
+                      dropdownColor: AppColors.deepSlateGray,
+                      style: TextStyle(color: AppColors.coolGray),
+                      icon: Icon(Icons.arrow_drop_down, color: AppColors.coolGray),
+                      items: withdrawalMethods.map((String method) {
+                        return DropdownMenuItem<String>(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            selectedMethod = newValue;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.coolGray),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validate amount
+                final amountText = amountController.text.trim();
+                if (amountText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter an amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                final amount = double.tryParse(amountText);
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid amount'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+
+                
+                // Check if user has sufficient balance
+                if (amount > _balance) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Insufficient balance'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+                
+                // Close dialog
+                Navigator.pop(context);
+                
+                try {
+                  // Update user wallet balance
+                  await _firestore.collection('users').doc(_uid).update({
+                    'walletBalance': FieldValue.increment(-amount),
+                  });
+                  
+                  // Add transaction record
+                  final timestamp = Timestamp.now();
+                  final description = 'Withdrawal via $selectedMethod';
+                  
+                  await _firestore.collection('walletTransactions').add({
+                    'userId': _uid,
+                    'type': 'Withdrawal',
+                    'amount': amount,
+                    'description': description,
+                    'timestamp': timestamp,
+                    'withdrawalMethod': selectedMethod,
+                  });
+                  
+                  // Refresh transaction history and show success message
+                  await _fetchWalletData();
+                  
+                  if (!mounted) return;
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Successfully withdrew RM ${amount.toStringAsFixed(2)}'),
+                      backgroundColor: AppColors.mutedTeal,
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint('Error withdrawing from wallet: $e');
+                  if (!mounted) return;
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.warmCoral,
+              ),
+              child: const Text(
+                'Withdraw',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        backgroundColor: AppColors.charcoalBlack,
+        appBar: AppBar(
+          backgroundColor: AppColors.deepSlateGray,
+          title: Text(
+            'Seller Wallet',
+            style: TextStyle(color: AppColors.coolGray),
+          ),
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Balance card
+                      Card(
+                        color: AppColors.deepSlateGray,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            children: [
+                              // Wallet icon
+                              Container(
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: AppColors.mutedTeal.withAlpha(50),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.account_balance_wallet,
+                                  color: AppColors.mutedTeal,
+                                  size: 32,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.account_balance_wallet,
-                                color: AppColors.mutedTeal,
-                                size: 32,
+                              const SizedBox(height: 16),
+                              // Balance text
+                              Text(
+                                'Your Current Balance',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.coolGray,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            // Balance text
-                            Text(
-                              'Your Current Balance',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.coolGray,
+                              const SizedBox(height: 8),
+                              Text(
+                                'RM ${_balance.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'RM ${_balance.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            // Action buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                // Top up button
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _showTopUpDialog,
-                                    icon: const Icon(Icons.add, color: Colors.white),
-                                    label: const Text(
-                                      'Top Up',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.mutedTeal,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                              const SizedBox(height: 24),
+                              // Action buttons
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  // Top up button
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _showTopUpDialog,
+                                      icon: const Icon(Icons.add, color: Colors.white),
+                                      label: const Text(
+                                        'Top Up',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.mutedTeal,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                // Withdraw button
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: _showWithdrawDialog,
-                                    icon: const Icon(Icons.arrow_upward, color: Colors.white),
-                                    label: const Text(
-                                      'Withdraw',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.warmCoral,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                                  const SizedBox(width: 16),
+                                  // Withdraw button
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _showWithdrawDialog,
+                                      icon: const Icon(Icons.arrow_upward, color: Colors.white),
+                                      label: const Text(
+                                        'Withdraw',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.warmCoral,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Transaction history section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Transaction History',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.coolGray,
-                          ),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.refresh, color: AppColors.coolGray),
-                          onPressed: _fetchTransactionHistory,
-                          tooltip: 'Refresh transactions',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _isLoadingTransactions
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : _transactions.isEmpty
-                        ? Card(
-                            color: AppColors.deepSlateGray,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 24),
+                      // Transaction history section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Transaction History',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.coolGray,
                             ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.refresh, color: AppColors.coolGray),
+                            onPressed: _fetchTransactionHistory,
+                            tooltip: 'Refresh transactions',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _isLoadingTransactions
+                        ? const Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Center(
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.receipt_long,
-                                      color: AppColors.coolGray.withValues(alpha: 150),
-                                      size: 48,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No transactions yet',
-                                      style: TextStyle(
-                                        color: AppColors.coolGray,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              padding: EdgeInsets.all(24.0),
+                              child: CircularProgressIndicator(),
                             ),
                           )
-                        : Card(
-                            color: AppColors.deepSlateGray,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _transactions.length,
-                              separatorBuilder: (context, index) => Divider(
-                                color: AppColors.coolGray.withValues(alpha: 50),
-                                height: 1,
+                        : _transactions.isEmpty
+                          ? Card(
+                              color: AppColors.deepSlateGray,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              itemBuilder: (context, index) {
-                                final transaction = _transactions[index];
-                                final amount = transaction['amount'] as double;
-                                final isPositive = amount >= 0;
-                                final status = transaction['status'] as String;
-                                
-                                return ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: isPositive
-                                        ? AppColors.mutedTeal.withValues(alpha: 51)
-                                        : AppColors.warmCoral.withValues(alpha: 51),
-                                    child: Icon(
-                                      _getTransactionIcon(transaction['type'] as String),
-                                      color: isPositive
-                                          ? AppColors.mutedTeal
-                                          : AppColors.warmCoral,
-                                    ),
-                                  ),
-                                  title: Row(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Center(
+                                  child: Column(
                                     children: [
+                                      Icon(
+                                        Icons.receipt_long,
+                                        color: AppColors.coolGray.withAlpha(150),
+                                        size: 48,
+                                      ),
+                                      const SizedBox(height: 16),
                                       Text(
-                                        transaction['type'] as String,
+                                        'No transactions yet',
                                         style: TextStyle(
                                           color: AppColors.coolGray,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      if (status != 'Completed')
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusColor(status).withValues(alpha: 50),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            status,
-                                            style: TextStyle(
-                                              color: _getStatusColor(status),
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                  subtitle: Text(
-                                    transaction['description'] as String,
-                                    style: TextStyle(color: AppColors.coolGray.withValues(alpha: 150)),
-                                  ),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '${isPositive ? '+' : ''}RM ${amount.abs().toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                          color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        _formatDate(transaction['date'] as DateTime),
-                                        style: TextStyle(
-                                          color: AppColors.coolGray.withValues(alpha: 150),
-                                          fontSize: 12,
+                                          fontSize: 16,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  onTap: transaction['relatedOrderId'] != null
-                                    ? () {
-                                        // Navigate to order details if there's a related order
-                                        if (mounted) {
+                                ),
+                              ),
+                            )
+                          : Card(
+                              color: AppColors.deepSlateGray,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _transactions.length,
+                                separatorBuilder: (context, index) => Divider(
+                                  color: AppColors.coolGray.withAlpha(50),
+                                  height: 1,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final transaction = _transactions[index];
+                                  final amount = transaction['amount'] as double;
+                                  final isPositive = amount > 0;
+                                  
+                                  return ListTile(
+                                    leading: Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: (isPositive ? AppColors.mutedTeal : AppColors.warmCoral).withAlpha(50),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        _getTransactionIcon(transaction['type'] as String),
+                                        color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    title: Row(
+                                      children: [
+                                        Text(
+                                          transaction['type'] as String,
+                                          style: TextStyle(color: AppColors.coolGray),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ],
+                                    ),
+                                    subtitle: Text(
+                                      transaction['description'] as String,
+                                      style: TextStyle(color: AppColors.coolGray.withAlpha(150)),
+                                    ),
+                                    trailing: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${isPositive ? '+' : ''}RM ${amount.abs().toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            color: isPositive ? AppColors.mutedTeal : AppColors.warmCoral,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          _formatDate(transaction['date'] as DateTime),
+                                          style: TextStyle(
+                                            color: AppColors.coolGray.withAlpha(150),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    onTap: transaction['relatedOrderId'] != null
+                                      ? () {
+                                          // Navigate to order details if there's a related order
                                           ScaffoldMessenger.of(context).showSnackBar(
                                             SnackBar(
                                               content: Text('Order ID: ${transaction['relatedOrderId']}'),
@@ -1138,43 +803,42 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                                             ),
                                           );
                                         }
-                                      }
-                                    : null,
-                                );
-                              },
+                                      : null,
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory_2_outlined),
+              label: 'My Listings',
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: 'My Listings',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star_outline),
-            label: 'Reviews',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        backgroundColor: AppColors.deepSlateGray,
-        selectedItemColor: AppColors.softLemonYellow,
-        unselectedItemColor: AppColors.coolGray,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-      ),
-    );
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star_outline),
+              label: 'Reviews',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              label: 'Wallet',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          backgroundColor: AppColors.deepSlateGray,
+          selectedItemColor: AppColors.softLemonYellow,
+          unselectedItemColor: AppColors.coolGray,
+          showUnselectedLabels: true,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+        ),
+      );
+    }
   }
-}

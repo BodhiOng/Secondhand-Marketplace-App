@@ -4,11 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'models/product.dart';
 import 'utils/page_transitions.dart';
+import 'utils/image_utils.dart';
 
-// Import seller pages (will be created)
+// Import seller pages
 import 'seller_reviews_page.dart';
 import 'seller_wallet_page.dart';
 import 'seller_profile_page.dart';
+import 'seller_add_product_page.dart';
 
 class SellerListingPage extends StatefulWidget {
   const SellerListingPage({super.key});
@@ -206,19 +208,23 @@ class _SellerListingPageState extends State<SellerListingPage> {
               });
             },
           ),
-          // Add product button
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () {
-              // Navigate to add product page
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Add product functionality coming soon'),
-                ),
-              );
-            },
-          ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          // Navigate to add product page
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddProductPage()),
+          );
+
+          // Refresh products if a new product was added
+          if (result == true) {
+            _fetchSellerProducts();
+          }
+        },
+        backgroundColor: AppColors.mutedTeal,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body:
           _isLoading
@@ -353,6 +359,16 @@ class _SellerListingPageState extends State<SellerListingPage> {
     );
   }
 
+  // Build error widget for image loading
+  Widget _buildErrorImage() {
+    return Container(
+      color: Colors.grey[800],
+      child: const Center(
+        child: Icon(Icons.image_not_supported, color: Colors.white54, size: 40),
+      ),
+    );
+  }
+
   Widget _buildProductCard(Product product) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -365,7 +381,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
           // Product image and status
           Stack(
             children: [
-              // Product image
+              // Product image with ImageUtils
               ClipRRect(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(8),
@@ -373,22 +389,21 @@ class _SellerListingPageState extends State<SellerListingPage> {
                 ),
                 child: AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: Image.network(
-                    product.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[800],
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            color: Colors.white54,
-                            size: 40,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  child:
+                      product.imageUrl.isNotEmpty
+                          ? ImageUtils.isBase64Image(product.imageUrl)
+                              ? ImageUtils.base64ToImage(
+                                product.imageUrl,
+                                fit: BoxFit.cover,
+                              )
+                              : Image.network(
+                                product.imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) =>
+                                        _buildErrorImage(),
+                              )
+                          : _buildErrorImage(),
                 ),
               ),
 
@@ -402,10 +417,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color:
-                        product.stock > 0
-                            ? Colors.green
-                            : Colors.red,
+                    color: product.stock > 0 ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -437,12 +449,12 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.white, size: 12),
+                        Icon(Icons.star, color: AppColors.charcoalBlack, size: 12),
                         const SizedBox(width: 4),
                         Text(
                           'Boosted ${product.adBoost.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: AppColors.charcoalBlack,
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                           ),
@@ -492,9 +504,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.deepSlateGray,
-                        border: Border.all(
-                          color: AppColors.coolGray.withValues(alpha: 77),
-                        ),
+                        border: Border.all(color: AppColors.mutedTeal),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -502,6 +512,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.coolGray,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -559,9 +570,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.mutedTeal,
-                        side: BorderSide(
-                          color: AppColors.mutedTeal,
-                        ),
+                        side: BorderSide(color: AppColors.mutedTeal),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -600,18 +609,27 @@ class _SellerListingPageState extends State<SellerListingPage> {
                                     },
                                     child: Text(
                                       'Delete',
-                                      style: TextStyle(color: Colors.red),
+                                      style: TextStyle(
+                                        color: AppColors.warmCoral,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                         );
                       },
-                      icon: const Icon(Icons.delete, size: 16),
-                      label: const Text('Delete'),
+                      icon: Icon(
+                        Icons.delete,
+                        size: 16,
+                        color: AppColors.coolGray,
+                      ),
+                      label: Text(
+                        'Delete',
+                        style: TextStyle(color: AppColors.coolGray),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.warmCoral,
-                        side: BorderSide(color: AppColors.warmCoral),
+                        side: const BorderSide(color: AppColors.warmCoral),
                       ),
                     ),
                   ],

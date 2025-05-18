@@ -102,7 +102,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
           'description': data['description'] ?? '',
           'amount': _getTransactionAmount(data['type'] as String, (data['amount'] ?? 0).toDouble()),
           'date': (data['timestamp'] as Timestamp).toDate(),
-          'status': data['status'] ?? 'Completed',
           'relatedOrderId': data['relatedOrderId'],
         });
       }
@@ -319,7 +318,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'amount': amount,
                         'description': description,
                         'timestamp': timestamp,
-                        'status': 'Completed',
                       });
                       
                       // Refresh transaction history and show success message
@@ -537,7 +535,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'amount': amount,
                         'description': description,
                         'timestamp': timestamp,
-                        'status': 'Completed',
                       });
                       
                       // Refresh transaction history and show success message
@@ -604,20 +601,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
         return Icons.sell;
       default:
         return Icons.swap_horiz;
-    }
-  }
-  
-  // Helper to get status color
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Completed':
-        return AppColors.mutedTeal;
-      case 'Pending':
-        return Colors.amber;
-      case 'Failed':
-        return AppColors.warmCoral;
-      default:
-        return AppColors.coolGray;
     }
   }
 
@@ -804,7 +787,6 @@ class _MyWalletPageState extends State<MyWalletPage> {
                                 final transaction = _transactions[index];
                                 final amount = transaction['amount'] as double;
                                 final isPositive = amount > 0;
-                                final status = transaction['status'] as String;
                                 
                                 return ListTile(
                                   leading: Container(
@@ -827,21 +809,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                                         style: TextStyle(color: AppColors.coolGray),
                                       ),
                                       const SizedBox(width: 8),
-                                      if (status != 'Completed')
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusColor(status).withAlpha(50),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            status,
-                                            style: TextStyle(
-                                              color: _getStatusColor(status),
-                                              fontSize: 10,
-                                            ),
-                                          ),
-                                        ),
+
                                     ],
                                   ),
                                   subtitle: Text(
