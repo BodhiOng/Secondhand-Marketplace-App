@@ -352,8 +352,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
       final String requestId = DateTime.now().millisecondsSinceEpoch.toString();
       final Timestamp currentTimestamp = Timestamp.now();
 
-      // Save help request to Firestore supportRequests collection
-      await _firestore.collection('supportRequests').doc(requestId).set({
+      // Save help request to Firestore helpCenterRequests collection
+      await _firestore.collection('helpCenterRequests').doc(requestId).set({
         'userId': userId,
         'username': username,
         'email': email,
@@ -361,15 +361,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
         'message': message,
         'status': 'pending',
         'createdAt': currentTimestamp,
-      });
-
-      // Also create an entry in the helpCenterContacts collection
-      await _firestore.collection('helpCenterContacts').doc(requestId).set({
-        'id': requestId,
-        'userId': userId,
-        'subject': subject,
-        'message': message,
-        'timestamp': currentTimestamp,
+        'userRole': 'buyer',
       });
 
       // Clear form fields and update loading state

@@ -273,7 +273,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
     try {
       // Save help request to Firestore
-      await _firestore.collection('help_requests').add({
+      await _firestore.collection('helpCenterRequests').add({
         'userId': _uid,
         'username': _usernameController.text,
         'email': _emailController.text,
