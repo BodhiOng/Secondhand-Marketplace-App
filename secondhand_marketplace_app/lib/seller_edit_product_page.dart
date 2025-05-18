@@ -228,7 +228,7 @@ class _EditProductPageState extends State<EditProductPage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(12.0),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.red.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8.0),
                             border: Border.all(color: Colors.red),
                           ),
@@ -250,7 +250,7 @@ class _EditProductPageState extends State<EditProductPage> {
                               color: AppColors.deepSlateGray,
                               borderRadius: BorderRadius.circular(8.0),
                               border: Border.all(
-                                color: AppColors.coolGray.withOpacity(0.3),
+                                color: AppColors.coolGray.withValues(alpha: 0.3),
                               ),
                             ),
                             child: _imageFile != null
@@ -300,7 +300,7 @@ class _EditProductPageState extends State<EditProductPage> {
                               backgroundColor: AppColors.deepSlateGray,
                               foregroundColor: AppColors.coolGray,
                               side: BorderSide(
-                                color: AppColors.coolGray.withOpacity(0.3),
+                                color: AppColors.coolGray.withValues(alpha: 0.3),
                               ),
                             ),
                           ),
@@ -549,7 +549,7 @@ class _EditProductPageState extends State<EditProductPage> {
                           borderSide: BorderSide(color: AppColors.mutedTeal),
                         ),
                         helperText: 'Lowest price you\'re willing to accept for bargaining',
-                        helperStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
+                        helperStyle: TextStyle(color: AppColors.coolGray.withValues(alpha: 0.7)),
                       ),
                       validator: (value) {
                         if (value != null && value.isNotEmpty) {
@@ -589,7 +589,7 @@ class _EditProductPageState extends State<EditProductPage> {
                           borderSide: BorderSide(color: AppColors.mutedTeal),
                         ),
                         helperText: 'Amount to spend on promoting this listing',
-                        helperStyle: TextStyle(color: AppColors.coolGray.withOpacity(0.7)),
+                        helperStyle: TextStyle(color: AppColors.coolGray.withValues(alpha: 0.7)),
                       ),
                       validator: (value) {
                         if (value != null && value.isNotEmpty) {
