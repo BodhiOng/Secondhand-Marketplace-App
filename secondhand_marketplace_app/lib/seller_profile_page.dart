@@ -24,8 +24,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _storeNameController = TextEditingController();
-  final TextEditingController _storeDescController = TextEditingController();
   final TextEditingController _helpSubjectController = TextEditingController();
   final TextEditingController _helpMessageController = TextEditingController();
 
@@ -55,8 +53,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     _usernameController.dispose();
     _emailController.dispose();
     _addressController.dispose();
-    _storeNameController.dispose();
-    _storeDescController.dispose();
     _helpSubjectController.dispose();
     _helpMessageController.dispose();
     super.dispose();
@@ -84,8 +80,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           _usernameController.text = userData['username'] ?? '';
           _emailController.text = userData['email'] ?? '';
           _addressController.text = userData['address'] ?? '';
-          _storeNameController.text = userData['storeName'] ?? '';
-          _storeDescController.text = userData['storeDescription'] ?? '';
           _profileImageUrl = userData['profileImageUrl'] ?? '';
           _role = userData['role'] ?? 'seller';
 
@@ -229,8 +223,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       await _firestore.collection('users').doc(_uid).update({
         'username': _usernameController.text,
         'address': _addressController.text,
-        'storeName': _storeNameController.text,
-        'storeDescription': _storeDescController.text,
         'profileImageUrl': _profileImageUrl,
         'role': 'seller',
       });
@@ -458,7 +450,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Store Information',
+                        'User Information',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -469,58 +461,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
                       // Editing Mode
                       if (_isEditing) ...[
-                        // Store Name Field
-                        Text(
-                          'Store Name',
-                          style: TextStyle(color: AppColors.coolGray),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _storeNameController,
-                          style: TextStyle(color: AppColors.coolGray),
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: AppColors.charcoalBlack,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.coolGray),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: AppColors.mutedTeal,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Store Description Field
-                        Text(
-                          'Store Description',
-                          style: TextStyle(color: AppColors.coolGray),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _storeDescController,
-                          style: TextStyle(color: AppColors.coolGray),
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            filled: true,
-                            fillColor: AppColors.charcoalBlack,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.coolGray),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(
-                                color: AppColors.mutedTeal,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
+  
 
                         // Username Field
                         Text(
@@ -613,46 +554,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                         ),
                       ] else ...[
                         // Display mode (non-editing)
-                        ListTile(
-                          leading: Icon(
-                            Icons.store,
-                            color: AppColors.mutedTeal,
-                          ),
-                          title: Text(
-                            'Store Name',
-                            style: TextStyle(
-                              color: AppColors.coolGray.withAlpha(200),
-                              fontSize: 14,
-                            ),
-                          ),
-                          subtitle: Text(
-                            _storeNameController.text.isNotEmpty
-                                ? _storeNameController.text
-                                : 'Not set',
-                            style: TextStyle(color: AppColors.coolGray),
-                          ),
-                        ),
-                        Divider(color: AppColors.coolGray.withAlpha(50)),
-                        ListTile(
-                          leading: Icon(
-                            Icons.description,
-                            color: AppColors.mutedTeal,
-                          ),
-                          title: Text(
-                            'Store Description',
-                            style: TextStyle(
-                              color: AppColors.coolGray.withAlpha(200),
-                              fontSize: 14,
-                            ),
-                          ),
-                          subtitle: Text(
-                            _storeDescController.text.isNotEmpty
-                                ? _storeDescController.text
-                                : 'Not set',
-                            style: TextStyle(color: AppColors.coolGray),
-                          ),
-                        ),
-                        Divider(color: AppColors.coolGray.withAlpha(50)),
+
                         ListTile(
                           leading: Icon(
                             Icons.location_on,

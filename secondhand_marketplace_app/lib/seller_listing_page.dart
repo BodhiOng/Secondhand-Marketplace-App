@@ -26,7 +26,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
   String _errorMessage = '';
   String? _sellerId;
   int _selectedIndex = 0; // Default to My Listings tab
-  
+
   // Search functionality
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
@@ -36,35 +36,36 @@ class _SellerListingPageState extends State<SellerListingPage> {
     super.initState();
     _sellerId = _auth.currentUser?.uid;
     _fetchSellerProducts();
-    
+
     // Add listener for search functionality
     _searchController.addListener(_filterProducts);
   }
-  
+
   @override
   void dispose() {
     _searchController.removeListener(_filterProducts);
     _searchController.dispose();
     super.dispose();
   }
-  
+
   // Filter products based on search query
   void _filterProducts() {
     final query = _searchController.text.toLowerCase();
-    
+
     setState(() {
       if (query.isEmpty) {
         _filteredProducts = List.from(_products);
       } else {
-        _filteredProducts = _products.where((product) {
-          return product.name.toLowerCase().contains(query) ||
-                 product.description.toLowerCase().contains(query) ||
-                 product.category.toLowerCase().contains(query);
-        }).toList();
+        _filteredProducts =
+            _products.where((product) {
+              return product.name.toLowerCase().contains(query) ||
+                  product.description.toLowerCase().contains(query) ||
+                  product.category.toLowerCase().contains(query);
+            }).toList();
       }
     });
   }
-  
+
   // Clear search and reset filtered products
   void _clearSearch() {
     _searchController.clear();
@@ -86,11 +87,12 @@ class _SellerListingPageState extends State<SellerListingPage> {
         throw Exception('User not authenticated');
       }
 
-      final QuerySnapshot productsSnapshot = await _firestore
-          .collection('products')
-          .where('sellerId', isEqualTo: _sellerId)
-          .orderBy('listedDate', descending: true)
-          .get();
+      final QuerySnapshot productsSnapshot =
+          await _firestore
+              .collection('products')
+              .where('sellerId', isEqualTo: _sellerId)
+              .orderBy('listedDate', descending: true)
+              .get();
 
       final List<Product> fetchedProducts = [];
 
@@ -140,7 +142,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
   // Handle bottom navigation
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-    
+
     switch (index) {
       case 0: // Already on My Listings
         setState(() {
@@ -167,7 +169,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
         break;
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -175,18 +177,21 @@ class _SellerListingPageState extends State<SellerListingPage> {
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
         foregroundColor: AppColors.coolGray,
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: TextStyle(color: AppColors.coolGray),
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  hintStyle: TextStyle(color: AppColors.coolGray.withValues(alpha: 128)),
-                  border: InputBorder.none,
-                ),
-              )
-            : const Text('My Products'),
+        title:
+            _isSearching
+                ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  style: TextStyle(color: AppColors.coolGray),
+                  decoration: InputDecoration(
+                    hintText: 'Search products...',
+                    hintStyle: TextStyle(
+                      color: AppColors.coolGray.withValues(alpha: 128),
+                    ),
+                    border: InputBorder.none,
+                  ),
+                )
+                : const Text('My Products'),
         actions: [
           // Search icon/close button
           IconButton(
@@ -215,105 +220,109 @@ class _SellerListingPageState extends State<SellerListingPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.mutedTeal,
-              ),
-            )
-          : _errorMessage.isNotEmpty
+      body:
+          _isLoading
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _errorMessage,
-                        style: TextStyle(color: AppColors.coolGray),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchSellerProducts,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.mutedTeal,
-                        ),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _products.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.inventory,
-                            size: 64,
-                            color: AppColors.coolGray.withValues(alpha: 128),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No products listed yet',
-                            style: TextStyle(color: AppColors.coolGray),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              // Navigate to add product page
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                      'Add product functionality coming soon'),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.mutedTeal,
-                            ),
-                            child: const Text('Add Product'),
-                          ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _fetchSellerProducts,
-                      color: AppColors.mutedTeal,
-                      child: _filteredProducts.isEmpty && _searchController.text.isNotEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.search_off,
-                                  size: 64,
-                                  color: AppColors.coolGray.withValues(alpha: 128),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No products match "${_searchController.text}"',
-                                  style: TextStyle(color: AppColors.coolGray),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                  onPressed: _clearSearch,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.mutedTeal,
-                                  ),
-                                  child: const Text('Clear Search'),
-                                ),
-                              ],
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _filteredProducts.length,
-                            itemBuilder: (context, index) {
-                              final product = _filteredProducts[index];
-                              return _buildProductCard(product);
-                            },
-                          ),
+                child: CircularProgressIndicator(color: AppColors.mutedTeal),
+              )
+              : _errorMessage.isNotEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _errorMessage,
+                      style: TextStyle(color: AppColors.coolGray),
+                      textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _fetchSellerProducts,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mutedTeal,
+                      ),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+              : _products.isEmpty
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.inventory,
+                      size: 64,
+                      color: AppColors.coolGray.withValues(alpha: 128),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No products listed yet',
+                      style: TextStyle(color: AppColors.coolGray),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Navigate to add product page
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Add product functionality coming soon',
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mutedTeal,
+                      ),
+                      child: const Text('Add Product'),
+                    ),
+                  ],
+                ),
+              )
+              : RefreshIndicator(
+                onRefresh: _fetchSellerProducts,
+                color: AppColors.mutedTeal,
+                child:
+                    _filteredProducts.isEmpty &&
+                            _searchController.text.isNotEmpty
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.search_off,
+                                size: 64,
+                                color: AppColors.coolGray.withValues(
+                                  alpha: 200,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No products match "${_searchController.text}"',
+                                style: TextStyle(color: AppColors.coolGray),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _clearSearch,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.mutedTeal,
+                                ),
+                                child: const Text('Clear Search'),
+                              ),
+                            ],
+                          ),
+                        )
+                        : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _filteredProducts[index];
+                            return _buildProductCard(product);
+                          },
+                        ),
+              ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -382,7 +391,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   ),
                 ),
               ),
-              
+
               // Stock indicator
               Positioned(
                 top: 8,
@@ -393,13 +402,16 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: product.stock > 0
-                        ? Colors.green.withValues(alpha: 51)
-                        : Colors.red.withValues(alpha: 51),
+                    color:
+                        product.stock > 0
+                            ? Colors.green
+                            : Colors.red,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    product.stock > 0 ? 'In Stock: ${product.stock}' : 'Out of Stock',
+                    product.stock > 0
+                        ? 'In Stock: ${product.stock}'
+                        : 'Out of Stock',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -408,7 +420,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   ),
                 ),
               ),
-              
+
               // Boost indicator if product is boosted
               if (product.adBoost > 0)
                 Positioned(
@@ -420,16 +432,12 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 51),
+                      color: Colors.amber,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          color: Colors.white,
-                          size: 12,
-                        ),
+                        const Icon(Icons.star, color: Colors.white, size: 12),
                         const SizedBox(width: 4),
                         Text(
                           'Boosted ${product.adBoost.toStringAsFixed(0)}',
@@ -445,7 +453,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                 ),
             ],
           ),
-          
+
           // Product details
           Padding(
             padding: const EdgeInsets.all(16),
@@ -464,7 +472,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Price and category
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -484,7 +492,9 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.deepSlateGray,
-                        border: Border.all(color: AppColors.coolGray.withValues(alpha: 77)),
+                        border: Border.all(
+                          color: AppColors.coolGray.withValues(alpha: 77),
+                        ),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -498,7 +508,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Min bargain price
                 if (product.minBargainPrice != null)
                   Text(
@@ -509,17 +519,14 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     ),
                   ),
                 const SizedBox(height: 8),
-                
+
                 // Condition and listing date
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Condition: ${product.condition}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.coolGray,
-                      ),
+                      style: TextStyle(fontSize: 14, color: AppColors.coolGray),
                     ),
                     Text(
                       'Listed: ${_formatDate(product.listedDate)}',
@@ -531,7 +538,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Action buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -542,62 +549,69 @@ class _SellerListingPageState extends State<SellerListingPage> {
                         // Navigate to edit product page
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Edit product functionality coming soon'),
+                            content: Text(
+                              'Edit product functionality coming soon',
+                            ),
                           ),
                         );
                       },
                       icon: const Icon(Icons.edit, size: 16),
                       label: const Text('Edit'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.coolGray,
-                        side: BorderSide(color: AppColors.coolGray.withValues(alpha: 128)),
+                        foregroundColor: AppColors.mutedTeal,
+                        side: BorderSide(
+                          color: AppColors.mutedTeal,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    
+
                     // Delete button
                     OutlinedButton.icon(
                       onPressed: () {
                         // Show confirmation dialog
                         showDialog(
                           context: context,
-                          builder: (context) => AlertDialog(
-                            backgroundColor: AppColors.deepSlateGray,
-                            title: Text(
-                              'Delete Product',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                            content: Text(
-                              'Are you sure you want to delete "${product.name}"? This action cannot be undone.',
-                              style: TextStyle(color: AppColors.coolGray),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text(
-                                  'Cancel',
+                          builder:
+                              (context) => AlertDialog(
+                                backgroundColor: AppColors.deepSlateGray,
+                                title: Text(
+                                  'Delete Product',
                                   style: TextStyle(color: AppColors.coolGray),
                                 ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _deleteProduct(product.id);
-                                },
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.red),
+                                content: Text(
+                                  'Are you sure you want to delete "${product.name}"? This action cannot be undone.',
+                                  style: TextStyle(color: AppColors.coolGray),
                                 ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: AppColors.coolGray,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      _deleteProduct(product.id);
+                                    },
+                                    child: Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
                         );
                       },
                       icon: const Icon(Icons.delete, size: 16),
                       label: const Text('Delete'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
+                        foregroundColor: AppColors.warmCoral,
+                        side: BorderSide(color: AppColors.warmCoral),
                       ),
                     ),
                   ],
@@ -609,12 +623,12 @@ class _SellerListingPageState extends State<SellerListingPage> {
       ),
     );
   }
-  
+
   // Format date to a readable string
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays < 1) {
       return 'Today';
     } else if (difference.inDays < 2) {
