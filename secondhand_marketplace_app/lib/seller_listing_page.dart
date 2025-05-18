@@ -11,6 +11,7 @@ import 'seller_reviews_page.dart';
 import 'seller_wallet_page.dart';
 import 'seller_profile_page.dart';
 import 'seller_add_product_page.dart';
+import 'seller_edit_product_page.dart';
 
 class SellerListingPage extends StatefulWidget {
   const SellerListingPage({super.key});
@@ -556,15 +557,19 @@ class _SellerListingPageState extends State<SellerListingPage> {
                   children: [
                     // Edit button
                     OutlinedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         // Navigate to edit product page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Edit product functionality coming soon',
-                            ),
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProductPage(product: product),
                           ),
                         );
+                        
+                        // Refresh products if a product was updated
+                        if (result == true) {
+                          _fetchSellerProducts();
+                        }
                       },
                       icon: const Icon(Icons.edit, size: 16),
                       label: const Text('Edit'),
