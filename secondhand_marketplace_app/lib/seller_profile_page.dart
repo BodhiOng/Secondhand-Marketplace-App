@@ -89,7 +89,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
           _isLoading = false;
         });
-        
+
         // Ensure user has seller role
         if (_role != 'seller') {
           await _firestore.collection('users').doc(_uid).update({
@@ -112,7 +112,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-    
+
     switch (index) {
       case 0: // Navigate to My Listings
         Navigator.pushReplacement(
@@ -257,7 +257,8 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
   }
 
   Future<void> _submitHelpRequest() async {
-    if (_helpSubjectController.text.isEmpty || _helpMessageController.text.isEmpty) {
+    if (_helpSubjectController.text.isEmpty ||
+        _helpMessageController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Please fill in both subject and message'),
@@ -461,8 +462,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
 
                       // Editing Mode
                       if (_isEditing) ...[
-  
-
                         // Username Field
                         Text(
                           'Username',
@@ -554,7 +553,6 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                         ),
                       ] else ...[
                         // Display mode (non-editing)
-
                         ListTile(
                           leading: Icon(
                             Icons.location_on,
@@ -710,7 +708,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                     try {
                       await _auth.signOut();
                       if (!mounted) return;
-                      
+
                       // Use a post-frame callback to ensure the widget is still in the tree
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!mounted) return;
@@ -722,7 +720,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
                       });
                     } catch (e) {
                       if (!mounted) return;
-                      
+
                       // Use a post-frame callback for error handling too
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!mounted) return;

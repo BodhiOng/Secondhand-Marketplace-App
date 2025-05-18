@@ -162,7 +162,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       if (source.startsWith('data:image')) {
         return true;
       }
-      
+
       // Check if it's a raw base64 string (without data URI scheme)
       // This is a simple check - in production you might want more validation
       final RegExp base64Regex = RegExp(r'^[A-Za-z0-9+/]+={0,2}$');
@@ -171,7 +171,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       return false;
     }
   }
-  
+
   // Get image provider based on source (file, network URL, or base64)
   ImageProvider _getImageProvider() {
     if (_profileImageFile != null) {
@@ -197,7 +197,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       return const AssetImage('assets/default_profile.png') as ImageProvider;
     }
   }
-  
+
   // Convert image to base64 or upload to Firebase Storage
   Future<String?> _uploadProfileImage({bool useBase64 = true}) async {
     if (_profileImageFile == null) return null;
@@ -207,7 +207,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
         // Convert image to base64
         final List<int> imageBytes = await _profileImageFile!.readAsBytes();
         final String base64Image = base64Encode(imageBytes);
-        
+
         // Return as data URI
         return 'data:image/jpeg;base64,$base64Image';
       } else {
@@ -342,7 +342,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
     final String username = _usernameController.text;
     final String email = _emailController.text;
     final String userId = _uid;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -371,14 +371,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
           _helpMessageController.clear();
           _isLoading = false;
         });
-        
+
         // Show success message only if widget is still mounted
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                'Your message has been sent to our support team',
-              ),
+              content: Text('Your message has been sent to our support team'),
               backgroundColor: AppColors.mutedTeal,
             ),
           );
@@ -390,7 +388,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
         setState(() {
           _isLoading = false;
         });
-        
+
         // Show error message only if widget is still mounted
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -802,7 +800,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     try {
                       await _auth.signOut();
                       if (!mounted) return;
-                      
+
                       // Use a post-frame callback to ensure the widget is still in the tree
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!mounted) return;
@@ -814,7 +812,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       });
                     } catch (e) {
                       if (!mounted) return;
-                      
+
                       // Use a post-frame callback for error handling too
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (!mounted) return;
