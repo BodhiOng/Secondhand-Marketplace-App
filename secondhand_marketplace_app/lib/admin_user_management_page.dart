@@ -341,7 +341,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
                       ),
                     ),
                     items:
-                        ['user', 'seller', 'admin'].map((String value) {
+                        ['buyer', 'seller', 'admin'].map((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
                             child: Text(
@@ -900,15 +900,14 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
   // Build role badge
   Widget _buildRoleBadge(String role) {
     Color badgeColor;
-    switch (role.toLowerCase()) {
-      case 'admin':
-        badgeColor = AppColors.softLemonYellow;
-        break;
-      case 'seller':
-        badgeColor = Colors.green;
-        break;
-      default: // buyer
-        badgeColor = Colors.blue;
+    final roleLower = role.toLowerCase();
+    
+    if (roleLower == 'admin') {
+      badgeColor = AppColors.softLemonYellow;
+    } else if (roleLower == 'seller') {
+      badgeColor = Colors.green;
+    } else { // buyer
+      badgeColor = Colors.blue;
     }
 
     return Container(
