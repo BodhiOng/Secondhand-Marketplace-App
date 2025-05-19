@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'utils/image_utils.dart';
+import 'admin_profile_page.dart';
+import 'utils/page_transitions.dart';
 
 class AdminUserManagementPage extends StatefulWidget {
   const AdminUserManagementPage({super.key});
@@ -13,6 +15,7 @@ class AdminUserManagementPage extends StatefulWidget {
 }
 
 class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
+  int _selectedIndex = 0; // 0 for User Management, 1 for Profile
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _users = [];
@@ -589,6 +592,27 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     );
   }
 
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    if (index == 1) {
+      // Navigate to Profile
+      Navigator.pushReplacement(
+        context,
+        DarkPageReplaceRoute(page: const AdminProfilePage()),
+      );
+    } else if (index == 0) {
+      // Already on User Management page, just update the index
+      setState(() {
+        _selectedIndex = 0;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -605,6 +629,27 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             onPressed: _fetchUsers,
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline),
+            activeIcon: Icon(Icons.people),
+            label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
+        showUnselectedLabels: true,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
       ),
       body: Column(
         children: [
@@ -833,7 +878,7 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       selected: isSelected,
       showCheckmark: false,
       backgroundColor: AppColors.charcoalBlack,
-      selectedColor: AppColors.mutedTeal.withValues(alpha: 0.3),
+      selectedColor: AppColors.mutedTeal,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -860,10 +905,10 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         badgeColor = AppColors.softLemonYellow;
         break;
       case 'seller':
-        badgeColor = AppColors.mutedTeal;
+        badgeColor = Colors.green;
         break;
-      default:
-        badgeColor = AppColors.coolGray;
+      default: // buyer
+        badgeColor = Colors.blue;
     }
 
     return Container(
