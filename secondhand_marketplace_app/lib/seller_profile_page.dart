@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -11,6 +11,8 @@ import 'seller_listing_page.dart';
 import 'seller_reviews_page.dart';
 import 'seller_wallet_page.dart';
 import 'utils/page_transitions.dart';
+import 'utils/image_utils.dart';
+import 'utils/image_converter.dart';
 
 class SellerProfilePage extends StatefulWidget {
   const SellerProfilePage({super.key});
@@ -162,75 +164,117 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     }
   }
 
-  bool _isBase64Image(String source) {
-    try {
-      if (source.isEmpty) return false;
-      if (source.length % 4 != 0) return false;
-      final base64Regex = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
-      if (!base64Regex.hasMatch(source)) return false;
-
-      // Try to decode it
-      base64Decode(source);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   ImageProvider _getImageProvider() {
     if (_profileImageFile != null) {
       return FileImage(_profileImageFile!);
-    } else if (_isBase64Image(_profileImageUrl)) {
-      return MemoryImage(base64Decode(_profileImageUrl));
     } else if (_profileImageUrl.isNotEmpty) {
-      return NetworkImage(_profileImageUrl);
+      if (ImageUtils.isBase64Image(_profileImageUrl)) {
+        return MemoryImage(ImageConverter.base64ToBytes(_profileImageUrl));
+      } else {
+        return NetworkImage(_profileImageUrl);
+      }
     } else {
       return const AssetImage('assets/images/default_profile.png');
     }
   }
 
-  Future<void> _uploadProfileImage({bool useBase64 = true}) async {
-    if (_profileImageFile == null) return;
+  Future<String?> _uploadProfileImage({bool useBase64 = true}) async {
+    if (_profileImageFile == null) return null;
 
     try {
       if (useBase64) {
         // Convert image to base64
         final bytes = await _profileImageFile!.readAsBytes();
-        _profileImageUrl = base64Encode(bytes);
+        final base64Image = base64Encode(bytes);
+
+        // Return as data URI
+        return 'data:image/jpeg;base64,$base64Image';
       } else {
         // Upload to Firebase Storage
-        final ref = _storage.ref().child('profile_images/$_uid.jpg');
-        await ref.putFile(_profileImageFile!);
-        _profileImageUrl = await ref.getDownloadURL();
+        final fileName =
+            'profile_${_uid}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final ref = _storage.ref().child('profile_images/$fileName');
+
+        final uploadTask = ref.putFile(_profileImageFile!);
+        final taskSnapshot = await uploadTask;
+
+        return await taskSnapshot.ref.getDownloadURL();
       }
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
+      return null;
     }
   }
 
   Future<void> _saveProfile() async {
+    if (_usernameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _addressController.text.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please fill in all required fields'),
+            backgroundColor: AppColors.warmCoral,
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // Upload profile image if changed
+      // Check if username is already taken (if username was changed)
+      final usernameCheck =
+          await _firestore
+              .collection('users')
+              .where('username', isEqualTo: _usernameController.text)
+              .where(FieldPath.documentId, isNotEqualTo: _uid)
+              .get();
+
+      if (usernameCheck.docs.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Username already taken. Please choose another one.',
+              ),
+              backgroundColor: AppColors.warmCoral,
+            ),
+          );
+        }
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Upload new profile image if selected
+      String? newImageUrl;
       if (_profileImageFile != null) {
-        await _uploadProfileImage();
+        // Use base64 encoding for the profile image
+        newImageUrl = await _uploadProfileImage(useBase64: true);
       }
 
       // Update user data in Firestore
-      await _firestore.collection('users').doc(_uid).update({
+      final updatedData = <String, dynamic>{
         'username': _usernameController.text,
         'address': _addressController.text,
-        'profileImageUrl': _profileImageUrl,
         'role': 'seller',
-      });
+      };
+
+      // Add new profile image URL if available
+      if (newImageUrl != null) {
+        updatedData['profileImageUrl'] = newImageUrl;
+        _profileImageUrl = newImageUrl;
+      }
+
+      await _firestore.collection('users').doc(_uid).update(updatedData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profile updated successfully'),
+          const SnackBar(
+            content: Text('Profile updated successfully'),
             backgroundColor: AppColors.mutedTeal,
           ),
         );
@@ -241,10 +285,11 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
         });
       }
     } catch (e) {
+      debugPrint('Error updating profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
+            content: Text('Error updating profile: ${e.toString()}'),
             backgroundColor: AppColors.warmCoral,
           ),
         );
