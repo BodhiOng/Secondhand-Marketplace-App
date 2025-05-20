@@ -7,6 +7,7 @@ import 'constants.dart';
 import 'utils/image_utils.dart';
 import 'admin_profile_page.dart';
 import 'admin_user_management_page.dart';
+import 'admin_order_management_page.dart';
 import 'utils/page_transitions.dart';
 
 class AdminProductModerationPage extends StatefulWidget {
@@ -19,7 +20,8 @@ class AdminProductModerationPage extends StatefulWidget {
 
 class _AdminProductModerationPageState
     extends State<AdminProductModerationPage> {
-  int _selectedIndex = 1; // 0 for User Management, 1 for Product Moderation, 2 for Profile
+  int _selectedIndex =
+      1; // 0 for User Management, 1 for Product Moderation, 2 for Order Moderation, 3 for Profile
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _reports = [];
@@ -427,7 +429,7 @@ class _AdminProductModerationPageState
   Future<void> _deleteProduct(Map<String, dynamic> report) async {
     try {
       final String productId = report['productId'] as String;
-      
+
       // Batch for all delete operations
       WriteBatch batch = _firestore.batch();
 
@@ -436,31 +438,34 @@ class _AdminProductModerationPageState
       batch.delete(productRef);
 
       // 2. Delete all reports related to this product
-      final relatedReports = await _firestore
-          .collection('reports')
-          .where('productId', isEqualTo: productId)
-          .get();
-          
+      final relatedReports =
+          await _firestore
+              .collection('reports')
+              .where('productId', isEqualTo: productId)
+              .get();
+
       for (var doc in relatedReports.docs) {
         batch.delete(doc.reference);
       }
 
       // 3. Delete all orders related to this product
-      final relatedOrders = await _firestore
-          .collection('orders')
-          .where('productId', isEqualTo: productId)
-          .get();
-          
+      final relatedOrders =
+          await _firestore
+              .collection('orders')
+              .where('productId', isEqualTo: productId)
+              .get();
+
       for (var doc in relatedOrders.docs) {
         batch.delete(doc.reference);
       }
-      
+
       // 4. Delete all reviews related to this product
-      final relatedReviews = await _firestore
-          .collection('reviews')
-          .where('productId', isEqualTo: productId)
-          .get();
-          
+      final relatedReviews =
+          await _firestore
+              .collection('reviews')
+              .where('productId', isEqualTo: productId)
+              .get();
+
       for (var doc in relatedReviews.docs) {
         batch.delete(doc.reference);
       }
@@ -574,6 +579,13 @@ class _AdminProductModerationPageState
         // Already on Products page
         break;
       case 2:
+        // Navigate to Order Moderation page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminOrderModerationPage()),
+        );
+        break;
+      case 3:
         // Navigate to Profile page
         Navigator.pushReplacement(
           context,
@@ -702,7 +714,9 @@ class _AdminProductModerationPageState
                           ),
                           color: AppColors.deepSlateGray,
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12.0,
+                            ),
                             leading: Container(
                               width: 50,
                               height: 50,
@@ -778,7 +792,8 @@ class _AdminProductModerationPageState
                                 Icons.more_vert,
                                 color: Colors.white,
                               ),
-                              onPressed: () => _showReportActionsMenu(context, report),
+                              onPressed:
+                                  () => _showReportActionsMenu(context, report),
                             ),
                             onTap: () => _showReportDetailsDialog(report),
                           ),
@@ -805,6 +820,11 @@ class _AdminProductModerationPageState
             icon: Icon(Icons.shopping_bag_outlined),
             activeIcon: Icon(Icons.shopping_bag),
             label: 'Products',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_outlined),
+            activeIcon: Icon(Icons.receipt),
+            label: 'Orders',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -838,8 +858,6 @@ class _AdminProductModerationPageState
       ),
     );
   }
-
-
 
   Widget _buildStatusBadge(String status) {
     Color badgeColor;
