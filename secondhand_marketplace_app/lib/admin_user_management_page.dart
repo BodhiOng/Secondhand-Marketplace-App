@@ -473,10 +473,105 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
     );
   }
 
-  // Delete user from Firestore
+  // Delete user and all related data from Firestore
   Future<void> _deleteUser(String userId) async {
     try {
-      await _firestore.collection('users').doc(userId).delete();
+      // Batch for all delete operations
+      WriteBatch batch = _firestore.batch();
+
+      // 1. Delete from users collection
+      final userRef = _firestore.collection('users').doc(userId);
+      batch.delete(userRef);
+
+      // 2. Delete from helpCenterRequests where userId matches
+      final helpCenterRequests =
+          await _firestore
+              .collection('helpCenterRequests')
+              .where('userId', isEqualTo: userId)
+              .get();
+      for (var doc in helpCenterRequests.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 3. Delete from orders where buyerId or sellerId matches
+      final ordersAsBuyer =
+          await _firestore
+              .collection('orders')
+              .where('buyerId', isEqualTo: userId)
+              .get();
+      for (var doc in ordersAsBuyer.docs) {
+        batch.delete(doc.reference);
+      }
+
+      final ordersAsSeller =
+          await _firestore
+              .collection('orders')
+              .where('sellerId', isEqualTo: userId)
+              .get();
+      for (var doc in ordersAsSeller.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 4. Delete from products where sellerId matches
+      final products =
+          await _firestore
+              .collection('products')
+              .where('sellerId', isEqualTo: userId)
+              .get();
+      for (var doc in products.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 5. Delete from reports where reporterId or sellerId matches
+      final reportsAsReporter =
+          await _firestore
+              .collection('reports')
+              .where('reporterId', isEqualTo: userId)
+              .get();
+      for (var doc in reportsAsReporter.docs) {
+        batch.delete(doc.reference);
+      }
+
+      final reportsAsSeller =
+          await _firestore
+              .collection('reports')
+              .where('sellerId', isEqualTo: userId)
+              .get();
+      for (var doc in reportsAsSeller.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 6. Delete from reviews where reviewerId or sellerId matches
+      final reviewsAsReviewer =
+          await _firestore
+              .collection('reviews')
+              .where('reviewerId', isEqualTo: userId)
+              .get();
+      for (var doc in reviewsAsReviewer.docs) {
+        batch.delete(doc.reference);
+      }
+
+      final reviewsAsSeller =
+          await _firestore
+              .collection('reviews')
+              .where('sellerId', isEqualTo: userId)
+              .get();
+      for (var doc in reviewsAsSeller.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 7. Delete from walletTransactions where userId matches
+      final transactions =
+          await _firestore
+              .collection('walletTransactions')
+              .where('userId', isEqualTo: userId)
+              .get();
+      for (var doc in transactions.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Commit the batch
+      await batch.commit();
 
       // Refresh user list
       _fetchUsers();
@@ -484,18 +579,20 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('User deleted successfully'),
+          const SnackBar(
+            content: Text(
+              'User and all related data have been deleted successfully',
+            ),
             backgroundColor: AppColors.mutedTeal,
           ),
         );
       }
     } catch (e) {
-      debugPrint('Error deleting user: $e');
+      debugPrint('Error deleting user data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting user: $e'),
+            content: Text('Error deleting user data: ${e.toString()}'),
             backgroundColor: AppColors.warmCoral,
           ),
         );
@@ -901,12 +998,13 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
   Widget _buildRoleBadge(String role) {
     Color badgeColor;
     final roleLower = role.toLowerCase();
-    
+
     if (roleLower == 'admin') {
       badgeColor = AppColors.softLemonYellow;
     } else if (roleLower == 'seller') {
       badgeColor = Colors.green;
-    } else { // buyer
+    } else {
+      // buyer
       badgeColor = Colors.blue;
     }
 
