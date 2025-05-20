@@ -27,7 +27,6 @@ class _AdminProductModerationPageState
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedStatus = 'All';
-  String _selectedReason = 'All';
 
   final TextEditingController _searchController = TextEditingController();
 
@@ -128,7 +127,7 @@ class _AdminProductModerationPageState
     }
   }
 
-  // Filter reports based on search query, status, and reason
+  // Filter reports based on search query and status
   void _filterReports() {
     setState(() {
       _filteredReports =
@@ -139,9 +138,6 @@ class _AdminProductModerationPageState
                 ) ||
                 report['sellerName'].toString().toLowerCase().contains(
                   _searchQuery.toLowerCase(),
-                ) ||
-                report['reason'].toString().toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
                 );
 
             final matchesStatus =
@@ -149,12 +145,7 @@ class _AdminProductModerationPageState
                 report['status'].toString().toLowerCase() ==
                     _selectedStatus.toLowerCase();
 
-            final matchesReason =
-                _selectedReason.toLowerCase() == 'all' ||
-                report['reason'].toString().toLowerCase() ==
-                    _selectedReason.toLowerCase();
-
-            return matchesSearch && matchesStatus && matchesReason;
+            return matchesSearch && matchesStatus;
           }).toList();
     });
   }
@@ -435,30 +426,42 @@ class _AdminProductModerationPageState
   // Delete product and update report
   Future<void> _deleteProduct(Map<String, dynamic> report) async {
     try {
+      final String productId = report['productId'] as String;
+      
       // Batch for all delete operations
       WriteBatch batch = _firestore.batch();
 
       // 1. Delete the product
-      final productRef = _firestore
-          .collection('products')
-          .doc(report['productId'] as String);
+      final productRef = _firestore.collection('products').doc(productId);
       batch.delete(productRef);
 
-      // 2. Update the report status to Resolved
-      final reportRef = _firestore
+      // 2. Delete all reports related to this product
+      final relatedReports = await _firestore
           .collection('reports')
-          .doc(report['id'] as String);
-      batch.update(reportRef, {'status': 'Resolved'});
+          .where('productId', isEqualTo: productId)
+          .get();
+          
+      for (var doc in relatedReports.docs) {
+        batch.delete(doc.reference);
+      }
 
-      // 3. Delete any related orders that are still pending
-      final pendingOrders =
-          await _firestore
-              .collection('orders')
-              .where('productId', isEqualTo: report['productId'])
-              .where('status', isEqualTo: 'pending')
-              .get();
-
-      for (var doc in pendingOrders.docs) {
+      // 3. Delete all orders related to this product
+      final relatedOrders = await _firestore
+          .collection('orders')
+          .where('productId', isEqualTo: productId)
+          .get();
+          
+      for (var doc in relatedOrders.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // 4. Delete all reviews related to this product
+      final relatedReviews = await _firestore
+          .collection('reviews')
+          .where('productId', isEqualTo: productId)
+          .get();
+          
+      for (var doc in relatedReviews.docs) {
         batch.delete(doc.reference);
       }
 
@@ -472,13 +475,13 @@ class _AdminProductModerationPageState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Product has been deleted and report resolved'),
+            content: Text('Product and all related data have been deleted'),
             backgroundColor: AppColors.mutedTeal,
           ),
         );
       }
     } catch (e) {
-      debugPrint('Error deleting product: $e');
+      debugPrint('Error deleting product and related data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -643,33 +646,7 @@ class _AdminProductModerationPageState
                           _buildStatusFilterChip('All'),
                           _buildStatusFilterChip('Pending'),
                           _buildStatusFilterChip('Investigating'),
-                          _buildStatusFilterChip('Resolved'),
                           _buildStatusFilterChip('Dismissed'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Reason:',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildReasonFilterChip('All'),
-                          _buildReasonFilterChip('Prohibited Item'),
-                          _buildReasonFilterChip('Inappropriate Content'),
-                          _buildReasonFilterChip('Counterfeit'),
-                          _buildReasonFilterChip('Misleading'),
-                          _buildReasonFilterChip('Other'),
                         ],
                       ),
                     ),
@@ -862,36 +839,13 @@ class _AdminProductModerationPageState
     );
   }
 
-  Widget _buildReasonFilterChip(String reason) {
-    final isSelected = _selectedReason == reason;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(reason),
-        selected: isSelected,
-        checkmarkColor: Colors.white,
-        selectedColor: AppColors.mutedTeal,
-        backgroundColor: AppColors.charcoalBlack,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : AppColors.coolGray,
-        ),
-        onSelected: (selected) {
-          setState(() {
-            _selectedReason = reason;
-            _filterReports();
-          });
-        },
-      ),
-    );
-  }
+
 
   Widget _buildStatusBadge(String status) {
     Color badgeColor;
     final statusLower = status.toLowerCase();
 
-    if (statusLower == 'resolved') {
-      badgeColor = AppColors.mutedTeal;
-    } else if (statusLower == 'investigating') {
+    if (statusLower == 'investigating') {
       badgeColor = Colors.orange;
     } else if (statusLower == 'dismissed') {
       badgeColor = AppColors.coolGray;
