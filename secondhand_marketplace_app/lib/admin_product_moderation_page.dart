@@ -8,6 +8,7 @@ import 'utils/image_utils.dart';
 import 'admin_profile_page.dart';
 import 'admin_user_management_page.dart';
 import 'admin_order_management_page.dart';
+import 'admin_customer_support_page.dart';
 import 'utils/page_transitions.dart';
 
 class AdminProductModerationPage extends StatefulWidget {
@@ -21,7 +22,7 @@ class AdminProductModerationPage extends StatefulWidget {
 class _AdminProductModerationPageState
     extends State<AdminProductModerationPage> {
   int _selectedIndex =
-      1; // 0 for User Management, 1 for Product Moderation, 2 for Order Moderation, 3 for Profile
+      1; // 0 for User Management, 1 for Product Moderation, 2 for Order Moderation, 3 for Customer Support, 4 for Profile
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _reports = [];
@@ -586,6 +587,13 @@ class _AdminProductModerationPageState
         );
         break;
       case 3:
+        // Navigate to Customer Support page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminCustomerSupportPage()),
+        );
+        break;
+      case 4:
         // Navigate to Profile page
         Navigator.pushReplacement(
           context,
@@ -825,6 +833,11 @@ class _AdminProductModerationPageState
             icon: Icon(Icons.receipt_outlined),
             activeIcon: Icon(Icons.receipt),
             label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.support_agent_outlined),
+            activeIcon: Icon(Icons.support_agent),
+            label: 'Support',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

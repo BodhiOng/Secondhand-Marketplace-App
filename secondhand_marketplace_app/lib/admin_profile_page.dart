@@ -10,6 +10,7 @@ import 'constants.dart';
 import 'admin_user_management_page.dart';
 import 'admin_product_moderation_page.dart';
 import 'admin_order_management_page.dart';
+import 'admin_customer_support_page.dart';
 import 'utils/image_utils.dart';
 import 'utils/image_converter.dart';
 import 'utils/page_transitions.dart';
@@ -22,7 +23,7 @@ class AdminProfilePage extends StatefulWidget {
 }
 
 class _AdminProfilePageState extends State<AdminProfilePage> {
-  int _selectedIndex = 3; // 0 for User Management, 1 for Products, 2 for Orders, 3 for Profile
+  int _selectedIndex = 4; // 0 for User Management, 1 for Products, 2 for Orders, 3 for Customer Support, 4 for Profile
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -128,6 +129,13 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         );
         break;
       case 3:
+        // Navigate to Customer Support page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminCustomerSupportPage()),
+        );
+        break;
+      case 4:
         // Already on Profile page
         break;
     }
@@ -598,7 +606,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         backgroundColor: AppColors.deepSlateGray,
         selectedItemColor: AppColors.softLemonYellow,
         unselectedItemColor: AppColors.coolGray,
-        currentIndex: 3, // Profile tab is selected
+        currentIndex: 4, // Profile tab is selected
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         items: const [
@@ -616,6 +624,11 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
             icon: Icon(Icons.receipt_outlined),
             activeIcon: Icon(Icons.receipt),
             label: 'Orders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.support_agent_outlined),
+            activeIcon: Icon(Icons.support_agent),
+            label: 'Support',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
