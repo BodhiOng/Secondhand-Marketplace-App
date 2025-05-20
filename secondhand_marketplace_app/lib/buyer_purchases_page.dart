@@ -118,8 +118,12 @@ class _MyPurchasesPageState extends State<MyPurchasesPage> {
     OrderStatus newStatus,
   ) async {
     try {
+      String statusText = newStatus.toString().split('.').last;
+      // Capitalize the first letter of the status
+      statusText = statusText[0].toUpperCase() + statusText.substring(1);
+      
       await _firestore.collection('orders').doc(order.id).update({
-        'status': newStatus.toString().split('.').last,
+        'status': statusText,
       });
 
       // Update local state

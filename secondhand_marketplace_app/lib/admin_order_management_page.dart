@@ -8,6 +8,7 @@ import 'admin_profile_page.dart';
 import 'admin_user_management_page.dart';
 import 'admin_product_moderation_page.dart';
 import 'utils/page_transitions.dart';
+import 'utils/image_utils.dart';
 
 class AdminOrderModerationPage extends StatefulWidget {
   const AdminOrderModerationPage({super.key});
@@ -249,6 +250,33 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Product image
+                  if (order['productImage'] != null && (order['productImage'] as String).isNotEmpty)
+                    Center(
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.mutedTeal.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8.0),
+                          child: ImageUtils.base64ToImage(
+                            order['productImage'] as String,
+                            fit: BoxFit.cover,
+                            width: 120,
+                            height: 120,
+                            errorWidget: const Icon(
+                              Icons.shopping_bag,
+                              color: AppColors.mutedTeal,
+                              size: 48,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   _detailRow('Order ID:', order['id']),
                   const SizedBox(height: 8),
                   _detailRow('Product:', order['productName']),
@@ -493,11 +521,11 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                         spacing: 8.0,
                         children:
                             [
-                                  'pending',
-                                  'processed',
-                                  'out for delivery',
-                                  'received',
-                                  'cancelled',
+                                  'Pending',
+                                  'Processed',
+                                  'Out For Delivery',
+                                  'Received',
+                                  'Cancelled',
                                 ]
                                 .map(
                                   (status) => ChoiceChip(
@@ -537,6 +565,7 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.mutedTeal,
+                        foregroundColor: Colors.white,
                       ),
                       child: const Text('Update'),
                     ),
@@ -581,20 +610,29 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
   // Build the UI for the status badge
   Widget _buildStatusBadge(String status) {
     Color badgeColor;
-    final statusLower = status.toLowerCase();
-
-    if (statusLower == 'processed') {
-      badgeColor = AppColors.mutedTeal;
-    } else if (statusLower == 'out for delivery') {
-      badgeColor = Colors.orange;
-    } else if (statusLower == 'received') {
-      badgeColor = Colors.green;
-    } else if (statusLower == 'cancelled') {
-      badgeColor = AppColors.coolGray;
-    } else {
-      // Pending
-      badgeColor = AppColors.warmCoral;
+    
+    // Since status is already in title case, we can use it directly
+    switch (status) {
+      case 'Processed':
+        badgeColor = AppColors.mutedTeal;
+        break;
+      case 'Out For Delivery':
+        badgeColor = Colors.orange;
+        break;
+      case 'Received':
+        badgeColor = Colors.green;
+        break;
+      case 'Cancelled':
+        badgeColor = AppColors.coolGray;
+        break;
+      case 'Pending':
+      default:
+        badgeColor = AppColors.warmCoral;
+        break;
     }
+    
+    // Use the status as is since it's already in title case
+    final displayStatus = status;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
@@ -604,7 +642,7 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
         border: Border.all(color: badgeColor),
       ),
       child: Text(
-        status,
+        displayStatus,
         style: TextStyle(
           color: badgeColor,
           fontSize: 10.0,
@@ -617,10 +655,19 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
   // Build status filter chip
   Widget _buildStatusFilterChip(String status) {
     final isSelected = _selectedStatus == status;
+    String displayStatus = status;
+    
+    // Convert status to title case for display
+    if (status.toLowerCase() == 'out for delivery') {
+      displayStatus = 'Out For Delivery';
+    } else if (status.isNotEmpty) {
+      displayStatus = status[0].toUpperCase() + status.substring(1).toLowerCase();
+    }
+    
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: FilterChip(
-        label: Text(status),
+        label: Text(displayStatus),
         selected: isSelected,
         checkmarkColor: Colors.white,
         selectedColor: AppColors.mutedTeal,
@@ -729,10 +776,6 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  'Pending: ${_orders.where((r) => r['status'] == 'pending').length}',
-                  style: const TextStyle(color: Colors.white),
-                ),
               ],
             ),
           ),
@@ -780,19 +823,15 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                                         borderRadius: BorderRadius.circular(
                                           8.0,
                                         ),
-                                        child: Image.network(
-                                          order['productImage'],
+                                        child: ImageUtils.base64ToImage(
+                                          order['productImage'] as String,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return const Icon(
-                                              Icons.shopping_bag,
-                                              color: AppColors.mutedTeal,
-                                            );
-                                          },
+                                          width: 50,
+                                          height: 50,
+                                          errorWidget: const Icon(
+                                            Icons.shopping_bag,
+                                            color: AppColors.mutedTeal,
+                                          ),
                                         ),
                                       )
                                       : const Icon(
@@ -839,27 +878,15 @@ class _AdminOrderModerationPageState extends State<AdminOrderModerationPage> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Buyer: ${order['buyerName']}',
-                                        style: TextStyle(
-                                          color: AppColors.coolGray,
-                                          fontSize: 12,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    _formatDate(order['purchaseDate']),
+                                    style: TextStyle(
+                                      color: AppColors.coolGray,
+                                      fontSize: 12,
                                     ),
-                                    Text(
-                                      _formatDate(order['purchaseDate']),
-                                      style: TextStyle(
-                                        color: AppColors.coolGray,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
