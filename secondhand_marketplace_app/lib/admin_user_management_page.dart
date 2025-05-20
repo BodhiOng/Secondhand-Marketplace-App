@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'utils/image_utils.dart';
+import 'admin_product_moderation_page.dart';
 import 'admin_profile_page.dart';
 import 'utils/page_transitions.dart';
 
@@ -696,17 +697,24 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
       _selectedIndex = index;
     });
 
-    if (index == 1) {
-      // Navigate to Profile
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const AdminProfilePage()),
-      );
-    } else if (index == 0) {
-      // Already on User Management page, just update the index
-      setState(() {
-        _selectedIndex = 0;
-      });
+    switch (index) {
+      case 0:
+        // Already on Users page
+        break;
+      case 1:
+        // Navigate to Products page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminProductModerationPage()),
+        );
+        break;
+      case 2:
+        // Navigate to Profile page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminProfilePage()),
+        );
+        break;
     }
   }
 
@@ -728,11 +736,22 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.people_outline),
             activeIcon: Icon(Icons.people),
             label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag_outlined),
+            activeIcon: Icon(Icons.shopping_bag),
+            label: 'Products',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -740,13 +759,6 @@ class _AdminUserManagementPageState extends State<AdminUserManagementPage> {
             label: 'Profile',
           ),
         ],
-        currentIndex: _selectedIndex,
-        backgroundColor: AppColors.deepSlateGray,
-        selectedItemColor: AppColors.softLemonYellow,
-        unselectedItemColor: AppColors.coolGray,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
       ),
       body: Column(
         children: [

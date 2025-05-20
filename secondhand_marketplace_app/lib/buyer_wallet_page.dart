@@ -293,7 +293,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
 
                       // Add transaction to Firestore
                       final timestamp = Timestamp.now();
-                      final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                      final transactionId = 'transaction_${DateTime.now().millisecondsSinceEpoch}';
                       
                       // Get description based on payment method
                       String description;
@@ -318,6 +318,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'amount': amount,
                         'description': description,
                         'timestamp': timestamp,
+                        'relatedOrderId': null,
                       });
                       
                       // Refresh transaction history and show success message
@@ -510,7 +511,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
 
                       // Add transaction to Firestore
                       final timestamp = Timestamp.now();
-                      final transactionId = 'trans_${DateTime.now().millisecondsSinceEpoch}';
+                      final transactionId = 'transaction_${DateTime.now().millisecondsSinceEpoch}';
                       
                       // Get description based on payment method
                       String description;
@@ -535,6 +536,7 @@ class _MyWalletPageState extends State<MyWalletPage> {
                         'amount': amount,
                         'description': description,
                         'timestamp': timestamp,
+                        'relatedOrderId': null,
                       });
                       
                       // Refresh transaction history and show success message

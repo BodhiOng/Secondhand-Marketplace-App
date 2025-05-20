@@ -8,9 +8,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'admin_user_management_page.dart';
-import 'utils/page_transitions.dart';
+import 'admin_product_moderation_page.dart';
 import 'utils/image_utils.dart';
 import 'utils/image_converter.dart';
+import 'utils/page_transitions.dart';
 
 class AdminProfilePage extends StatefulWidget {
   const AdminProfilePage({super.key});
@@ -20,7 +21,7 @@ class AdminProfilePage extends StatefulWidget {
 }
 
 class _AdminProfilePageState extends State<AdminProfilePage> {
-  int _selectedIndex = 1; // 0 for User Management, 1 for Profile
+  int _selectedIndex = 2; // 0 for User Management, 1 for Products, 2 for Profile
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -77,7 +78,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
           _addressController.text = userData['address'] ?? '';
           _profileImageUrl = userData['profileImageUrl'] ?? '';
           _role = userData['role'] ?? 'admin';
-          
+
           if (userData['joinDate'] != null) {
             _joinDate = (userData['joinDate'] as Timestamp).toDate();
           }
@@ -103,17 +104,24 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       _selectedIndex = index;
     });
 
-    if (index == 0) {
-      // Navigate to User Management
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const AdminUserManagementPage()),
-      );
-    } else if (index == 1) {
-      // Already on Profile page, just update the index
-      setState(() {
-        _selectedIndex = 1;
-      });
+    switch (index) {
+      case 0:
+        // Navigate to User Management page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminUserManagementPage()),
+        );
+        break;
+      case 1:
+        // Navigate to Product Moderation page
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const AdminProductModerationPage()),
+        );
+        break;
+      case 2:
+        // Already on Profile page
+        break;
     }
   }
 
@@ -145,9 +153,12 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     } else if (_profileImageUrl.isNotEmpty) {
       if (ImageUtils.isBase64Image(_profileImageUrl)) {
         // Handle both plain base64 and data URI formats
-        final String base64String = _profileImageUrl.startsWith('data:image')
-            ? _profileImageUrl.split(',').last // Extract base64 part from data URI
-            : _profileImageUrl; // Already just the base64 string
+        final String base64String =
+            _profileImageUrl.startsWith('data:image')
+                ? _profileImageUrl
+                    .split(',')
+                    .last // Extract base64 part from data URI
+                : _profileImageUrl; // Already just the base64 string
         return MemoryImage(base64Decode(base64String));
       } else {
         return NetworkImage(_profileImageUrl);
@@ -163,16 +174,19 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
 
       if (useBase64) {
         // Convert image to base64 string
-        final String base64String =
-            await ImageConverter.fileToBase64(_profileImageFile!);
+        final String base64String = await ImageConverter.fileToBase64(
+          _profileImageFile!,
+        );
         setState(() {
           _profileImageUrl = base64String;
         });
       } else {
         // Upload to Firebase Storage
         final String fileName = 'profile_$_uid.jpg';
-        final Reference storageRef =
-            _storage.ref().child('profile_images').child(fileName);
+        final Reference storageRef = _storage
+            .ref()
+            .child('profile_images')
+            .child(fileName);
 
         await storageRef.putFile(_profileImageFile!);
         final String downloadUrl = await storageRef.getDownloadURL();
@@ -243,15 +257,16 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.charcoalBlack,
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
-        title: Text('Admin Profile', style: TextStyle(color: AppColors.coolGray)),
+        title: Text(
+          'Admin Profile',
+          style: TextStyle(color: AppColors.coolGray),
+        ),
         actions: [
           if (!_isEditing)
             IconButton(
@@ -295,12 +310,12 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                       children: [
                         _isLoading
                             ? CircularProgressIndicator(
-                                color: AppColors.mutedTeal,
-                              )
+                              color: AppColors.mutedTeal,
+                            )
                             : CircleAvatar(
-                                radius: 60,
-                                backgroundImage: _getImageProvider(),
-                              ),
+                              radius: 60,
+                              backgroundImage: _getImageProvider(),
+                            ),
                         if (_isEditing)
                           Positioned(
                             bottom: 0,
@@ -387,7 +402,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                       const SizedBox(height: 16),
 
                       // Username Field
-                      if (_isEditing) ...[  
+                      if (_isEditing) ...[
                         Text(
                           'Username',
                           style: TextStyle(color: AppColors.coolGray),
@@ -476,7 +491,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
                             ),
                           ),
                         ),
-                      ] else ...[  
+                      ] else ...[
                         // Display mode (non-editing)
                         ListTile(
                           leading: Icon(
@@ -572,11 +587,22 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
+        backgroundColor: AppColors.deepSlateGray,
+        selectedItemColor: AppColors.softLemonYellow,
+        unselectedItemColor: AppColors.coolGray,
+        currentIndex: 2, // Profile tab is selected
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.people_outline),
             activeIcon: Icon(Icons.people),
             label: 'Users',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag_outlined),
+            activeIcon: Icon(Icons.shopping_bag),
+            label: 'Products',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -584,13 +610,6 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
             label: 'Profile',
           ),
         ],
-        currentIndex: _selectedIndex,
-        backgroundColor: AppColors.deepSlateGray,
-        selectedItemColor: AppColors.softLemonYellow,
-        unselectedItemColor: AppColors.coolGray,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }

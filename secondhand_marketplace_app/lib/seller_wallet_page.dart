@@ -328,7 +328,7 @@ class _SellerWalletPageState extends State<SellerWalletPage> {
                           // Add transaction record
                           final timestamp = Timestamp.now();
                           final transactionId =
-                              'trans_${DateTime.now().millisecondsSinceEpoch}';
+                              'transaction_${DateTime.now().millisecondsSinceEpoch}';
 
                           // Get description based on payment method
                           String description;
