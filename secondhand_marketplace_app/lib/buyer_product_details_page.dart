@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
 import 'models/product.dart'; // To access the Product class
 import 'models/cart_item.dart';
@@ -25,16 +26,17 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   final TextEditingController _bargainController = TextEditingController();
 
   // Get minimum bargain price from Firestore or fallback to 80% of product price
-  double get _minimumPrice => widget.product.minBargainPrice ?? (widget.product.price * 0.8);
+  double get _minimumPrice =>
+      widget.product.minBargainPrice ?? (widget.product.price * 0.8);
 
   // Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Seller data
   Map<String, dynamic> _seller = {
     'username': 'Loading...',
     'address': 'Loading...',
-    
     'profileImageUrl': 'https://picsum.photos/id/1005/200/200', // Default image
     'rating': 0.0,
     'sales': 0,
@@ -53,63 +55,65 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
   void initState() {
     super.initState();
     // Set initial bargain price to 80% of original or slightly above minimum
-    _bargainPrice = max(
-        widget.product.price * 0.8,
-        _minimumPrice + 0.01
-    );
+    _bargainPrice = max(widget.product.price * 0.8, _minimumPrice + 0.01);
     _bargainController.text = _bargainPrice.toStringAsFixed(2);
 
     // Fetch seller information
     _fetchSellerInfo();
-    
+
     // Fetch product reviews
     _fetchProductReviews();
   }
-  
+
   // Fetch reviews for this product from Firestore
   Future<void> _fetchProductReviews() async {
     try {
       setState(() {
         _isLoadingReviews = true;
       });
-      
+
       // Query reviews collection for this product
-      final QuerySnapshot reviewsSnapshot = await _firestore
-          .collection('reviews')
-          .where('productId', isEqualTo: widget.product.id)
-          .get();
-      
+      final QuerySnapshot reviewsSnapshot =
+          await _firestore
+              .collection('reviews')
+              .where('productId', isEqualTo: widget.product.id)
+              .get();
+
       // Calculate average rating and count reviews
       if (reviewsSnapshot.docs.isNotEmpty) {
         double totalRating = 0;
         final List<Map<String, dynamic>> fetchedReviews = [];
-        
+
         for (var doc in reviewsSnapshot.docs) {
           final reviewData = doc.data() as Map<String, dynamic>;
-          
+
           // Add rating to total for average calculation
           if (reviewData.containsKey('rating')) {
             totalRating += (reviewData['rating'] as num).toDouble();
           }
-          
+
           // Fetch reviewer information
           final String reviewerId = reviewData['reviewerId'] ?? '';
           String username = 'Anonymous';
-          String profileImageUrl = 'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
-          
+          String profileImageUrl =
+              'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
+
           if (reviewerId.isNotEmpty) {
             try {
-              final userDoc = await _firestore.collection('users').doc(reviewerId).get();
+              final userDoc =
+                  await _firestore.collection('users').doc(reviewerId).get();
               if (userDoc.exists) {
                 final userData = userDoc.data() as Map<String, dynamic>;
                 username = userData['username'] ?? 'User';
-                profileImageUrl = userData['profileImageUrl'] ?? 'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
+                profileImageUrl =
+                    userData['profileImageUrl'] ??
+                    'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
               }
             } catch (e) {
               debugPrint('Error fetching reviewer info: $e');
             }
           }
-          
+
           // Format the review date
           String formattedDate = 'Recently';
           if (reviewData['date'] != null) {
@@ -117,7 +121,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
             final reviewDate = timestamp.toDate();
             final now = DateTime.now();
             final difference = now.difference(reviewDate);
-            
+
             if (difference.inDays < 1) {
               formattedDate = 'Today';
             } else if (difference.inDays < 2) {
@@ -132,7 +136,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
               formattedDate = '${(difference.inDays / 365).floor()} years ago';
             }
           }
-          
+
           // Add review to the list
           fetchedReviews.add({
             'id': reviewData['id'] ?? '',
@@ -144,10 +148,10 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
             'image': reviewData['imageUrl'],
           });
         }
-        
+
         // Calculate average rating
         final double averageRating = totalRating / reviewsSnapshot.docs.length;
-        
+
         setState(() {
           _reviews = fetchedReviews;
           _productRating = double.parse(averageRating.toStringAsFixed(1));
@@ -184,7 +188,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           _seller = {
             'username': userData['username'] ?? 'Unknown Seller',
             'address': userData['address'] ?? 'Location not available',
-            
+
             'profileImageUrl':
                 userData['profileImageUrl'] ??
                 'https://picsum.photos/id/1005/200/200',
@@ -253,66 +257,143 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     setState(() {
       _showBargainSheet = false;
     });
-    
+
     // Check if the bargain price is valid
     if (_bargainPrice < _minimumPrice) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Bargain price must be at least RM${_minimumPrice.toStringAsFixed(2)}'),
+          content: Text(
+            'Bargain price must be at least RM${_minimumPrice.toStringAsFixed(2)}',
+          ),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
-    
+
     try {
-      // Create a modified product with the bargained price
-      final bargainedProduct = Product(
-        id: widget.product.id,
-        name: widget.product.name,
-        description: widget.product.description,
-        price: _bargainPrice, // Use the bargained price
-        imageUrl: widget.product.imageUrl,
-        additionalImages: widget.product.additionalImages,
-        category: widget.product.category,
-        sellerId: widget.product.sellerId,
-        seller: widget.product.seller,
-        rating: widget.product.rating,
-        condition: widget.product.condition,
-        listedDate: widget.product.listedDate,
-        stock: widget.product.stock,
-        adBoost: widget.product.adBoost,
-        minBargainPrice: widget.product.minBargainPrice,
-      );
-      
-      // Create a cart item with the bargained product
-      final cartItem = CartItem(product: bargainedProduct);
+      // Create a bargain message
+      final String bargainMessage =
+          'I would like to offer \$${_bargainPrice.toStringAsFixed(2)} for this item.';
 
+      // Show success message
       if (mounted) {
-        // Hide the bottom sheet
-        _hideBargainBottomSheet();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Your offer of \$${_bargainPrice.toStringAsFixed(2)} has been sent to the seller!',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: AppColors.mutedTeal,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
 
-        // Navigate to checkout page with the bargained item
+      // Create chat and navigate
+      if (mounted) {
+        _createChatAndNavigate(
+          widget.product.sellerId,
+          widget.product.id,
+          initialMessage: bargainMessage,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error: ${e.toString()}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createChatAndNavigate(
+    String sellerId,
+    String productId, {
+    String? initialMessage,
+  }) async {
+    try {
+      // Get current user
+      final User? currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You need to be logged in to chat with sellers'),
+          ),
+        );
+        return;
+      }
+
+      // Create a new chat document
+      final chatDoc = await _firestore.collection('chats').add({
+        'participants': [currentUser.uid, sellerId],
+        'participantNames': {
+          currentUser.uid: currentUser.displayName ?? 'Buyer',
+          sellerId: _seller['username'] ?? 'Seller',
+        },
+        'lastMessage': initialMessage ?? 'Chat started',
+        'lastMessageTimestamp': FieldValue.serverTimestamp(),
+        'product': {
+          'id': productId,
+          'name': widget.product.name,
+          'imageUrl': widget.product.imageUrl,
+          'price': widget.product.price,
+        },
+        'unreadCount': {sellerId: 1, currentUser.uid: 0},
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // Add initial message if provided
+      if (initialMessage != null) {
+        await _firestore
+            .collection('chats')
+            .doc(chatDoc.id)
+            .collection('messages')
+            .add({
+              'text': initialMessage,
+              'senderId': currentUser.uid,
+              'timestamp': FieldValue.serverTimestamp(),
+              'type': 'text',
+              'read': false,
+            });
+      }
+
+      // Prepare chat data for the detail page
+      final Map<String, dynamic> chatData = {
+        'participants': [currentUser.uid, sellerId],
+        'participantNames': {
+          currentUser.uid: currentUser.displayName ?? 'Buyer',
+          sellerId: _seller['username'] ?? 'Seller',
+        },
+        'product': {
+          'id': productId,
+          'name': widget.product.name,
+          'imageUrl': widget.product.imageUrl,
+          'price': widget.product.price,
+        },
+      };
+
+      // Navigate to chat detail page
+      if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CheckoutPage(
-              cartItems: [cartItem],
-              isBargainPurchase: true, // Flag to indicate this is a bargain purchase
-            ),
+            builder:
+                (context) =>
+                    ChatDetailPage(chatId: chatDoc.id, chatData: chatData),
           ),
         );
       }
     } catch (e) {
-      // Show error message
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error creating chat: ${e.toString()}')),
+      );
     }
   }
 
@@ -328,7 +409,6 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
-
           IconButton(
             icon: const Icon(Icons.flag_outlined, color: AppColors.coolGray),
             onPressed: () {
@@ -463,7 +543,6 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
-
                                             ],
                                           ),
                                         ),
@@ -520,11 +599,12 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ProductReviewsPage(
-                                    product: widget.product,
-                                    averageRating: _productRating,
-                                    reviewCount: _reviewCount,
-                                  ),
+                                  builder:
+                                      (context) => ProductReviewsPage(
+                                        product: widget.product,
+                                        averageRating: _productRating,
+                                        reviewCount: _reviewCount,
+                                      ),
                                 ),
                               );
                             },
@@ -551,27 +631,28 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
 
                       // Reviews List
                       _isLoadingReviews
-                        ? Center(
+                          ? Center(
                             child: CircularProgressIndicator(
                               color: AppColors.mutedTeal,
                             ),
                           )
-                        : _reviews.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'No reviews yet',
-                                  style: TextStyle(
-                                    color: AppColors.coolGray,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              )
-                            : Column(
-                                children: _reviews
+                          : _reviews.isEmpty
+                          ? Center(
+                            child: Text(
+                              'No reviews yet',
+                              style: TextStyle(
+                                color: AppColors.coolGray,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          )
+                          : Column(
+                            children:
+                                _reviews
                                     .take(3)
                                     .map((review) => _buildReviewItem(review))
                                     .toList(),
-                              ),
+                          ),
 
                       // Bottom padding to ensure content isn't hidden behind the action buttons
                       const SizedBox(height: 80),
@@ -606,27 +687,15 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                     flex: 1,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Create a sample chat for this product and seller
-                        final chat = {
-                          'id': widget.product.id,
-                          'name': widget.product.seller,
-                          'profilePic': _seller['profilePic'],
-                          'lastMessage':
-                              'Hello, I\'m interested in your ${widget.product.name}. Is it still available?',
-                          'timestamp': DateTime.now(),
-                          'unread': 0,
-                          'product': {
-                            'name': widget.product.name,
-                            'imageUrl': widget.product.imageUrl,
-                          },
-                        };
+                        // Message for the seller
+                        final String message =
+                            "Hello, I'm interested in your ${widget.product.name}. Is it still available?";
 
-                        // Navigate to chat detail page for this product
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ChatDetailPage(chat: chat),
-                          ),
+                        // Create a chat in Firestore and navigate to chat detail page
+                        _createChatAndNavigate(
+                          widget.product.sellerId,
+                          widget.product.id,
+                          initialMessage: message,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -640,33 +709,40 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   ),
                   const SizedBox(width: 8),
 
-
-
                   // Buy Now Button
                   Expanded(
                     flex: 3,
                     child: ElevatedButton(
-                      onPressed: widget.product.stock > 0 ? () {
-                        // Create a cart item with the current product
-                        final cartItem = CartItem(product: widget.product);
+                      onPressed:
+                          widget.product.stock > 0
+                              ? () {
+                                // Create a cart item with the current product
+                                final cartItem = CartItem(
+                                  product: widget.product,
+                                );
 
-                        // Navigate to checkout page with the item
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) =>
-                                    CheckoutPage(cartItems: [cartItem]),
-                          ),
-                        );
-                      } : null, // Disable button if stock is 0
+                                // Navigate to checkout page with the item
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            CheckoutPage(cartItems: [cartItem]),
+                                  ),
+                                );
+                              }
+                              : null, // Disable button if stock is 0
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.mutedTeal,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.mutedTeal.withAlpha(100),
+                        disabledBackgroundColor: AppColors.mutedTeal.withAlpha(
+                          100,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: Text(widget.product.stock > 0 ? 'Buy Now' : 'Out of Stock'),
+                      child: Text(
+                        widget.product.stock > 0 ? 'Buy Now' : 'Out of Stock',
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -675,11 +751,16 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                   Expanded(
                     flex: 3,
                     child: ElevatedButton(
-                      onPressed: widget.product.stock > 0 ? _showBargainBottomSheet : null, // Disable if stock is 0
+                      onPressed:
+                          widget.product.stock > 0
+                              ? _showBargainBottomSheet
+                              : null, // Disable if stock is 0
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.warmCoral,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.warmCoral.withAlpha(100),
+                        disabledBackgroundColor: AppColors.warmCoral.withAlpha(
+                          100,
+                        ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text('Bargain'),
@@ -866,34 +947,43 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                 if (mounted) {
                   showDialog(
                     context: context,
-                    builder: (context) => Dialog.fullscreen(
-                    backgroundColor: Colors.black87,
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: InteractiveViewer(
-                            minScale: 0.5,
-                            maxScale: 4.0,
-                            child: ImageUtils.base64ToImage(
-                              review['image'],
-                              fit: BoxFit.contain,
-                              errorWidget: Center(
-                                child: Icon(Icons.broken_image, color: Colors.grey[400], size: 50),
+                    builder:
+                        (context) => Dialog.fullscreen(
+                          backgroundColor: Colors.black87,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: InteractiveViewer(
+                                  minScale: 0.5,
+                                  maxScale: 4.0,
+                                  child: ImageUtils.base64ToImage(
+                                    review['image'],
+                                    fit: BoxFit.contain,
+                                    errorWidget: Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey[400],
+                                        size: 50,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              Positioned(
+                                top: 40,
+                                right: 20,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Positioned(
-                          top: 40,
-                          right: 20,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   );
                 }
               },
