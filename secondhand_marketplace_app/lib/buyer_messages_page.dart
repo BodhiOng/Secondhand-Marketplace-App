@@ -3,11 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'constants.dart';
-import 'buyer_home_page.dart';
-import 'buyer_purchases_page.dart';
-import 'buyer_wallet_page.dart';
-import 'buyer_profile_page.dart';
-import 'utils/page_transitions.dart';
 import 'buyer_chat_detail_page.dart';
 import 'services/chat_service.dart';
 import 'services/notification_service.dart';
@@ -20,7 +15,6 @@ class MessagesPage extends StatefulWidget {
 }
 
 class _MessagesPageState extends State<MessagesPage> {
-  int _selectedIndex = 4; // Set to 4 for Messages tab
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
@@ -75,41 +69,6 @@ class _MessagesPageState extends State<MessagesPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onItemTapped(int index) {
-    if (index == 0) {
-      // Navigate directly to HomePage
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(
-          page: const MyHomePage(title: 'Secondhand Marketplace'),
-        ),
-      );
-    } else if (index == 1) {
-      // Navigate to My Purchases page
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const MyPurchasesPage()),
-      );
-    } else if (index == 2) {
-      // Navigate to Wallet page
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const MyWalletPage()),
-      );
-    } else if (index == 3) {
-      // Navigate to Profile page
-      Navigator.pushReplacement(
-        context,
-        DarkPageReplaceRoute(page: const MyProfilePage()),
-      );
-    } else if (index == 4) {
-      // Already on Messages page, just update index
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
   }
 
   String _formatTimestamp(DateTime timestamp) {
@@ -489,34 +448,6 @@ class _MessagesPageState extends State<MessagesPage> {
                   );
                 },
               ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined),
-            label: 'My Purchases',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'Wallet',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.message_outlined),
-            label: 'Messages',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        backgroundColor: AppColors.deepSlateGray,
-        selectedItemColor: AppColors.softLemonYellow,
-        unselectedItemColor: AppColors.coolGray,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-      ),
     );
   }
 }
