@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'constants.dart';
 import 'admin_profile_page.dart';
@@ -10,6 +11,8 @@ import 'admin_product_moderation_page.dart';
 import 'admin_order_management_page.dart';
 import 'utils/page_transitions.dart';
 import 'utils/image_utils.dart';
+import 'admin_messages_page.dart';
+import 'admin_chat_detail_page.dart';
 
 class AdminCustomerSupportPage extends StatefulWidget {
   const AdminCustomerSupportPage({super.key});
@@ -20,7 +23,8 @@ class AdminCustomerSupportPage extends StatefulWidget {
 }
 
 class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
-  final int _selectedIndex = 3; // 0 for User Management, 1 for Product Moderation, 2 for Order Moderation, 3 for Customer Support, 4 for Profile
+  final int _selectedIndex =
+      3; // 0 for User Management, 1 for Product Moderation, 2 for Order Moderation, 3 for Customer Support, 4 for Profile
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   List<Map<String, dynamic>> _supportRequests = [];
@@ -71,7 +75,8 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
           'message': data['message'] as String? ?? '',
           'status': data['status'] as String? ?? 'Pending',
           'userRole': data['userRole'] as String? ?? '',
-          'createdAt': (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+          'createdAt':
+              (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
           'attachment': data['attachment'] as String? ?? '',
         });
       }
@@ -95,29 +100,32 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
       if (_searchQuery.isEmpty && _selectedStatus == 'All') {
         _filteredRequests = List.from(_supportRequests);
       } else {
-        _filteredRequests = _supportRequests.where((request) {
-          // Filter by status
-          bool statusMatch = _selectedStatus == 'All' ||
-              request['status'].toString().toLowerCase() ==
-                  _selectedStatus.toLowerCase();
+        _filteredRequests =
+            _supportRequests.where((request) {
+              // Filter by status
+              bool statusMatch =
+                  _selectedStatus == 'All' ||
+                  request['status'].toString().toLowerCase() ==
+                      _selectedStatus.toLowerCase();
 
-          // Filter by search query (username, email, subject, or message)
-          bool searchMatch = _searchQuery.isEmpty ||
-              request['username'].toString().toLowerCase().contains(
+              // Filter by search query (username, email, subject, or message)
+              bool searchMatch =
+                  _searchQuery.isEmpty ||
+                  request['username'].toString().toLowerCase().contains(
                     _searchQuery.toLowerCase(),
                   ) ||
-              request['email'].toString().toLowerCase().contains(
+                  request['email'].toString().toLowerCase().contains(
                     _searchQuery.toLowerCase(),
                   ) ||
-              request['subject'].toString().toLowerCase().contains(
+                  request['subject'].toString().toLowerCase().contains(
                     _searchQuery.toLowerCase(),
                   ) ||
-              request['message'].toString().toLowerCase().contains(
+                  request['message'].toString().toLowerCase().contains(
                     _searchQuery.toLowerCase(),
                   );
 
-          return statusMatch && searchMatch;
-        }).toList();
+              return statusMatch && searchMatch;
+            }).toList();
       }
     });
   }
@@ -130,33 +138,25 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
       case 0:
         Navigator.pushReplacement(
           context,
-          DarkPageReplaceRoute(
-            page: const AdminUserManagementPage(),
-          ),
+          DarkPageReplaceRoute(page: const AdminUserManagementPage()),
         );
         break;
       case 1:
         Navigator.pushReplacement(
           context,
-          DarkPageReplaceRoute(
-            page: const AdminProductModerationPage(),
-          ),
+          DarkPageReplaceRoute(page: const AdminProductModerationPage()),
         );
         break;
       case 2:
         Navigator.pushReplacement(
           context,
-          DarkPageReplaceRoute(
-            page: const AdminOrderModerationPage(),
-          ),
+          DarkPageReplaceRoute(page: const AdminOrderModerationPage()),
         );
         break;
       case 4:
         Navigator.pushReplacement(
           context,
-          DarkPageReplaceRoute(
-            page: const AdminProfilePage(),
-          ),
+          DarkPageReplaceRoute(page: const AdminProfilePage()),
         );
         break;
     }
@@ -186,10 +186,7 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white),
-            ),
+            child: Text(value, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -197,57 +194,251 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
   }
 
   // Show support request details dialog
+  // Method to start a chat with a user for support purposes
+  Future<void> _startChatWithUser(String userId, String username) async {
+    try {
+      if (userId.isEmpty) {
+        throw Exception('User ID is required');
+      }
+
+      // Get current admin ID
+      final adminId = FirebaseAuth.instance.currentUser?.uid;
+      if (adminId == null) {
+        throw Exception('Admin not authenticated');
+      }
+
+      // Check if a chat already exists between admin and this user
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .where('participants', arrayContains: adminId)
+              .get();
+
+      String? existingChatId;
+
+      // Look for an existing chat with this user
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final participants = List<String>.from(data['participants'] ?? []);
+
+        if (participants.contains(userId)) {
+          // Chat already exists
+          existingChatId = doc.id;
+          break;
+        }
+      }
+
+      // If no existing chat, create a new one
+      if (existingChatId == null) {
+        // Get user details
+        final userDoc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .get();
+        final userData = userDoc.data();
+
+        if (userData == null) {
+          throw Exception('User not found');
+        }
+
+        // Create a new chat document
+        final chatRef = FirebaseFirestore.instance.collection('chats').doc();
+
+        // Set up the chat document for support
+        await chatRef.set({
+          'id': chatRef.id,
+          'participants': [adminId, userId],
+          'productId': 'support', // Just a marker to identify support chats
+          'lastMessage': 'Support chat started',
+          'lastMessageTimestamp': FieldValue.serverTimestamp(),
+          'lastMessageSenderId': adminId,
+          'unreadCount': {userId: 1, adminId: 0},
+          'participantNames': {adminId: 'Admin Support', userId: username},
+          'isSupport': true, // Flag to identify this as a support chat
+        });
+
+        existingChatId = chatRef.id;
+      }
+
+      // existingChatId is guaranteed to be non-null at this point based on our logic above
+      // Check if this is a new chat based on the lastMessage
+      final chatDoc =
+          await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(existingChatId)
+              .get();
+      final chatData = chatDoc.data() as Map<String, dynamic>;
+      final bool isNewChat = chatData['lastMessage'] == 'Support chat started';
+
+      if (isNewChat) {
+        // New chat - send welcome message first
+        // Create message document for welcome message
+        final welcomeMessageRef =
+            FirebaseFirestore.instance
+                .collection('chats')
+                .doc(existingChatId)
+                .collection('messages')
+                .doc();
+
+        await welcomeMessageRef.set({
+          'id': welcomeMessageRef.id,
+          'senderId': adminId,
+          'text': 'Hello, this is Help Center. How may I assist you?',
+          'timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+          'imageUrl': null,
+          'chatId': existingChatId,
+        });
+
+        // Update the chat document with the welcome message
+        await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(existingChatId)
+            .update({
+              'lastMessage':
+                  'Hello, this is Help Center. How may I assist you?',
+              'lastMessageTimestamp': FieldValue.serverTimestamp(),
+              'lastMessageSenderId': adminId,
+            });
+
+        // Get the updated chat data
+        final updatedChatDoc =
+            await FirebaseFirestore.instance
+                .collection('chats')
+                .doc(existingChatId)
+                .get();
+        final updatedChatData = updatedChatDoc.data() as Map<String, dynamic>;
+
+        // Navigate to chat detail page with updated data
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => AdminChatDetailPage(
+                  chatId: existingChatId!,
+                  chatData: updatedChatData,
+                ),
+          ),
+        );
+      } else {
+        // Existing chat - just navigate to it
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => AdminChatDetailPage(
+                  chatId: existingChatId!,
+                  chatData: chatData,
+                ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error starting chat: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Navigate to messages page
+  void _navigateToMessages() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminMessagesPage()),
+    );
+  }
+
   void _showRequestDetailsDialog(Map<String, dynamic> request) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          request['subject'],
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _detailRow('Status', request['status']),
-              _detailRow('From', request['username']),
-              _detailRow('Email', request['email']),
-              _detailRow('User Role', request['userRole']),
-              _detailRow('Date', _formatDate(request['createdAt'])),
-              const SizedBox(height: 16),
-              const Text(
-                'Message:',
-                style: TextStyle(
-                  color: AppColors.coolGray,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: Stack(
+          children: [
+            // Close button (X) in top-right corner
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.coolGray),
+                onPressed: () => Navigator.pop(context),
               ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(12.0),
-                decoration: BoxDecoration(
-                  color: AppColors.deepSlateGray.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(8.0),
-                  border: Border.all(
-                    color: AppColors.coolGray.withValues(alpha: 0.3),
+            ),
+            
+            // Main content
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  // Title with status
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          request['subject'],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      _buildStatusBadge(request['status']),
+                    ],
                   ),
-                ),
-                child: Text(
-                  request['message'],
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-              
-              // Display attachment if available
-              if (request['attachment'] != null && request['attachment'].toString().isNotEmpty)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Request details
+                  _detailRow('From', request['username']),
+                  _detailRow('Email', request['email']),
+                  _detailRow('User Role', request['userRole']),
+                  _detailRow('Date', _formatDate(request['createdAt'])),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Message content
+                  const Text(
+                    'Message:',
+                    style: TextStyle(
+                      color: AppColors.coolGray,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: AppColors.deepSlateGray.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(8.0),
+                      border: Border.all(
+                        color: AppColors.coolGray.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Text(
+                      request['message'],
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+
+                  // Display attachment if available
+                  if (request['attachment'] != null &&
+                      request['attachment'].toString().isNotEmpty) ...[
                     const SizedBox(height: 16),
                     const Text(
                       'Attachment:',
@@ -273,42 +464,105 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
                       ),
                     ),
                   ],
-                ),
-            ],
-          ),
+                  
+                  // Buttons at the bottom with enhanced styling
+                  const SizedBox(height: 24),
+                  IntrinsicHeight(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Chat button - only show if user ID is available
+                        if (request['userId'] != null && request['userId'].toString().isNotEmpty) ...[
+                          Expanded(
+                            flex: 2,
+                            child: Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.mutedTeal, width: 1.5),
+                              ),
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.mutedTeal),
+                                label: const Text(
+                                  'Chat',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _startChatWithUser(
+                                    request['userId'],
+                                    request['username'] ?? 'User',
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                        
+                        // Resolve/Pending button - takes remaining space
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            margin: request['userId'] != null && request['userId'].toString().isNotEmpty
+                                ? const EdgeInsets.only(left: 8)
+                                : null,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: request['status'] == 'Pending' 
+                                    ? AppColors.mutedTeal 
+                                    : Colors.orange,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 0,
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                _updateRequestStatus(
+                                  request['id'],
+                                  request['status'] == 'Pending' ? 'Resolved' : 'Pending',
+                                );
+                              },
+                              child: Text(
+                                request['status'] == 'Pending' 
+                                    ? 'Mark as Resolved' 
+                                    : 'Mark as Pending',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Close',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-          if (request['status'] == 'Pending')
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.mutedTeal,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                _updateRequestStatus(request['id'], 'Resolved');
-              },
-              child: const Text('Mark as Resolved'),
-            )
-          else if (request['status'] == 'Resolved')
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                _updateRequestStatus(request['id'], 'Pending');
-              },
-              child: const Text('Mark as Pending'),
-            ),
-        ],
       ),
     );
   }
@@ -357,10 +611,7 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8.0,
-        vertical: 4.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: badgeColor,
         borderRadius: BorderRadius.circular(12.0),
@@ -387,9 +638,7 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
       checkmarkColor: Colors.white,
       label: Text(
         status,
-        style: TextStyle(
-          color: isSelected ? Colors.white : AppColors.coolGray,
-        ),
+        style: TextStyle(color: isSelected ? Colors.white : AppColors.coolGray),
       ),
       onSelected: (selected) {
         setState(() {
@@ -411,6 +660,12 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
           style: TextStyle(color: Colors.white),
         ),
         actions: [
+          // Messages button
+          IconButton(
+            icon: const Icon(Icons.message_outlined, color: Colors.white),
+            tooltip: 'Messages',
+            onPressed: _navigateToMessages,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _fetchSupportRequests,
@@ -435,18 +690,22 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
                   borderRadius: BorderRadius.circular(8.0),
                   borderSide: BorderSide.none,
                 ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, color: AppColors.coolGray),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
-                            _filterRequests();
-                          });
-                        },
-                      )
-                    : null,
+                suffixIcon:
+                    _searchQuery.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(
+                            Icons.clear,
+                            color: AppColors.coolGray,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                              _filterRequests();
+                            });
+                          },
+                        )
+                        : null,
               ),
               onChanged: (value) {
                 setState(() {
@@ -472,128 +731,130 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
 
           // Support requests list
           Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.mutedTeal,
-                    ),
-                  )
-                : _filteredRequests.isEmpty
+            child:
+                _isLoading
+                    ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.mutedTeal,
+                      ),
+                    )
+                    : _filteredRequests.isEmpty
                     ? Center(
-                        child: Text(
-                          'No support requests found',
-                          style: TextStyle(
-                            color: AppColors.coolGray,
-                            fontSize: 16.0,
-                          ),
+                      child: Text(
+                        'No support requests found',
+                        style: TextStyle(
+                          color: AppColors.coolGray,
+                          fontSize: 16.0,
                         ),
-                      )
+                      ),
+                    )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(8.0),
-                        itemCount: _filteredRequests.length,
-                        itemBuilder: (context, index) {
-                          final request = _filteredRequests[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              vertical: 4.0,
-                              horizontal: 8.0,
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: _filteredRequests.length,
+                      itemBuilder: (context, index) {
+                        final request = _filteredRequests[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            vertical: 4.0,
+                            horizontal: 8.0,
+                          ),
+                          color: AppColors.deepSlateGray,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 8.0,
                             ),
-                            color: AppColors.deepSlateGray,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16.0,
-                                vertical: 8.0,
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      request['subject'],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    request['subject'],
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _buildStatusBadge(request['status']),
-                                ],
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        request['username'],
-                                        style: TextStyle(
-                                          color: AppColors.mutedTeal,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '(${request['userRole']})',
-                                        style: TextStyle(
-                                          color: AppColors.coolGray,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    request['message'],
-                                    style: TextStyle(
-                                      color: AppColors.coolGray,
-                                      fontSize: 12,
-                                    ),
-                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  
-                                  // Show attachment indicator if available
-                                  if (request['attachment'] != null && request['attachment'].toString().isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4.0),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.image,
-                                            size: 14,
-                                            color: AppColors.mutedTeal,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Has attachment',
-                                            style: TextStyle(
-                                              color: AppColors.mutedTeal,
-                                              fontSize: 12,
-                                              fontStyle: FontStyle.italic,
-                                            ),
-                                          ),
-                                        ],
+                                ),
+                                const SizedBox(width: 8),
+                                _buildStatusBadge(request['status']),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Text(
+                                      request['username'],
+                                      style: TextStyle(
+                                        color: AppColors.mutedTeal,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      _formatDate(request['createdAt']),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '(${request['userRole']})',
                                       style: TextStyle(
                                         color: AppColors.coolGray,
                                         fontSize: 12,
                                       ),
                                     ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  request['message'],
+                                  style: TextStyle(
+                                    color: AppColors.coolGray,
+                                    fontSize: 12,
                                   ),
-                                ],
-                              ),
-                              onTap: () => _showRequestDetailsDialog(request),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+
+                                // Show attachment indicator if available
+                                if (request['attachment'] != null &&
+                                    request['attachment'].toString().isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.image,
+                                          size: 14,
+                                          color: AppColors.mutedTeal,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Has attachment',
+                                          style: TextStyle(
+                                            color: AppColors.mutedTeal,
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    _formatDate(request['createdAt']),
+                                    style: TextStyle(
+                                      color: AppColors.coolGray,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                            onTap: () => _showRequestDetailsDialog(request),
+                          ),
+                        );
+                      },
+                    ),
           ),
         ],
       ),
