@@ -151,7 +151,7 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
           ),
         );
         break;
-      case 3:
+      case 4:
         Navigator.pushReplacement(
           context,
           DarkPageReplaceRoute(

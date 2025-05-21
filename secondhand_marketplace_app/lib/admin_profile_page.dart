@@ -280,7 +280,7 @@ class _AdminProfilePageState extends State<AdminProfilePage> {
       appBar: AppBar(
         backgroundColor: AppColors.deepSlateGray,
         title: Text(
-          'Admin Profile',
+          'My Profile',
           style: TextStyle(color: AppColors.coolGray),
         ),
         actions: [
