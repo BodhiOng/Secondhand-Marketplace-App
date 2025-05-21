@@ -691,7 +691,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                       onPressed: () {
                         // Message for the seller
                         final String message =
-                            "Hello, I'm interested in your ${widget.product.name}. Is it still available?";
+                            "Hello, I'm interested in your ${widget.product.name}. Is it still available? [This is a system-generated message]";
 
                         // Create a chat in Firestore and navigate to chat detail page
                         _createChatAndNavigate(

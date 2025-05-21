@@ -348,10 +348,6 @@ class _MessagesPageState extends State<MessagesPage> {
                       final unreadCount =
                           unreadCountMap[_auth.currentUser?.uid] ?? 0;
 
-                      // Get product data
-                      final product =
-                          chatData['product'] as Map<String, dynamic>? ?? {};
-
                       // Get timestamp and format it
                       final timestamp =
                           chatData['lastMessageTimestamp'] as Timestamp?;
@@ -483,38 +479,6 @@ class _MessagesPageState extends State<MessagesPage> {
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 20,
-                                    height: 20,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(4),
-                                      image: DecorationImage(
-                                        image: CachedNetworkImageProvider(
-                                          product['imageUrl'] ??
-                                              'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg',
-                                        ),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      product['name'] ?? 'Unknown Product',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: AppColors.coolGray.withAlpha(
-                                          150,
-                                        ),
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ],
                           ),

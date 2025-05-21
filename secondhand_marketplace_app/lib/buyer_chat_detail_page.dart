@@ -28,7 +28,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-
   // Services
   final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -38,7 +37,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   // Loading state
   bool _isLoading = false;
-
 
   @override
   void initState() {
@@ -105,8 +103,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       });
     }
   }
-
-
 
   String _formatTime(DateTime timestamp) {
     return DateFormat('h:mm a').format(timestamp);
@@ -294,12 +290,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final product = widget.chatData['product'] as Map<String, dynamic>? ?? {};
-    final productName = product['name'] ?? 'Unknown Product';
-    final productImage =
-        product['imageUrl'] ??
-        'https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg';
-
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
@@ -325,127 +315,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                backgroundColor: AppColors.deepSlateGray,
-                builder:
-                    (context) => Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Product Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.coolGray,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: CachedNetworkImage(
-                                  imageUrl: productImage,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      productName,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.coolGray,
-                                      ),
-                                    ),
-                                    if (product['price'] != null)
-                                      Text(
-                                        'RM ${product['price']}',
-                                        style: TextStyle(
-                                          color: AppColors.mutedTeal,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.mutedTeal,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size.fromHeight(40),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context);
-                              // Navigate to product details page
-                            },
-                            child: const Text('View Product'),
-                          ),
-                        ],
-                      ),
-                    ),
-              );
-            },
-          ),
-        ],
+        // No actions needed
+        actions: [],
       ),
       body: Column(
         children: [
-          // Product info banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: AppColors.deepSlateGray,
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: CachedNetworkImage(
-                    imageUrl: productImage,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        productName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.coolGray,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (product['price'] != null)
-                        Text(
-                          'RM ${product['price']}',
-                          style: TextStyle(color: AppColors.mutedTeal),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
           // Messages
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
@@ -550,7 +424,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             color: AppColors.deepSlateGray,
             child: Row(
               children: [
-
                 Expanded(
                   child: TextField(
                     controller: _messageController,
