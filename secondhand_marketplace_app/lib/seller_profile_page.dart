@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:secondhand_marketplace_app/seller_messages_page.dart';
 import 'constants.dart';
 import 'seller_listing_page.dart';
 import 'seller_reviews_page.dart';
@@ -134,7 +135,13 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           DarkPageReplaceRoute(page: const SellerWalletPage()),
         );
         break;
-      case 3: // Already on Profile page, just update index
+      case 3: // Navigate to Messages
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerMessagesPage()),
+        );
+        break;
+      case 4: // Already on Profile page, just update index
         setState(() {
           _selectedIndex = index;
         });
@@ -791,7 +798,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            label: 'My Listings',
+            label: 'Listings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star_outline),
@@ -800,6 +807,10 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_outlined),
             label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message_outlined),
+            label: 'Messages',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

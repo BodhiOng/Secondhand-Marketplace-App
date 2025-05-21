@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:secondhand_marketplace_app/seller_messages_page.dart';
 import 'constants.dart';
 import 'seller_listing_page.dart';
 import 'seller_wallet_page.dart';
@@ -158,7 +159,13 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
           DarkPageReplaceRoute(page: const SellerWalletPage()),
         );
         break;
-      case 3: // Navigate to Profile
+      case 3: // Navigate to Messages
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerMessagesPage()),
+        );
+        break;
+      case 4: // Navigate to Profile
         Navigator.pushReplacement(
           context,
           DarkPageReplaceRoute(page: const SellerProfilePage()),
@@ -583,7 +590,7 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            label: 'My Listings',
+            label: 'Listings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star_outline),
@@ -592,6 +599,10 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_outlined),
             label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message_outlined),
+            label: 'Messages',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

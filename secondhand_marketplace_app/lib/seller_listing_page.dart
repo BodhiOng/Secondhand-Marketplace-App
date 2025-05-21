@@ -12,6 +12,7 @@ import 'seller_wallet_page.dart';
 import 'seller_profile_page.dart';
 import 'seller_add_product_page.dart';
 import 'seller_edit_product_page.dart';
+import 'seller_messages_page.dart';
 
 class SellerListingPage extends StatefulWidget {
   const SellerListingPage({super.key});
@@ -165,6 +166,12 @@ class _SellerListingPageState extends State<SellerListingPage> {
         );
         break;
       case 3: // Navigate to Profile
+        Navigator.pushReplacement(
+          context,
+          DarkPageReplaceRoute(page: const SellerMessagesPage()),
+        );
+        break;
+      case 4: // Navigate to Messages
         Navigator.pushReplacement(
           context,
           DarkPageReplaceRoute(page: const SellerProfilePage()),
@@ -337,7 +344,7 @@ class _SellerListingPageState extends State<SellerListingPage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            label: 'My Listings',
+            label: 'Listings',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.star_outline),
@@ -346,6 +353,10 @@ class _SellerListingPageState extends State<SellerListingPage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.account_balance_wallet_outlined),
             label: 'Wallet',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message_outlined),
+            label: 'Messages',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
