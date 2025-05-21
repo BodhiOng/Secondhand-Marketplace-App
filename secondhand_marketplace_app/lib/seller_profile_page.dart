@@ -23,7 +23,7 @@ class SellerProfilePage extends StatefulWidget {
 }
 
 class _SellerProfilePageState extends State<SellerProfilePage> {
-  int _selectedIndex = 3; // Set to 3 for Profile tab
+  int _selectedIndex = 4; // Set to 4 for Profile tab
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();

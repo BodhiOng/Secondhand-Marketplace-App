@@ -9,6 +9,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'constants.dart';
 import 'services/chat_service.dart';
+import 'utils/image_utils.dart';
 
 class ChatDetailPage extends StatefulWidget {
   final String chatId;
@@ -146,11 +147,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           if (!isMe)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundImage: CachedNetworkImageProvider(
-                  _getOtherParticipantImage(),
-                ),
+              child: FutureBuilder<String>(
+                future: _fetchProfileImage(_getOtherParticipantId()),
+                builder: (context, snapshot) {
+                  final profileImageUrl = snapshot.data ?? _getOtherParticipantImage();
+                  return CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.grey[300],
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: ImageUtils.base64ToImage(
+                          profileImageUrl,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
 
@@ -246,12 +261,27 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           if (isMe)
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
-              child: CircleAvatar(
-                radius: 16,
-                backgroundImage: CachedNetworkImageProvider(
-                  _auth.currentUser?.photoURL ??
-                      'https://i.pinimg.com/1200x/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg',
-                ),
+              child: FutureBuilder<String>(
+                future: _auth.currentUser != null ? _fetchProfileImage(_auth.currentUser!.uid) : Future.value(''),
+                builder: (context, snapshot) {
+                  final profileImageUrl = snapshot.data ?? 
+                      _auth.currentUser?.photoURL ?? 
+                      'https://i.pinimg.com/1200x/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg';
+                  return CircleAvatar(
+                    radius: 16,
+                    backgroundColor: Colors.grey[300],
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: ImageUtils.base64ToImage(
+                          profileImageUrl,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
         ],
@@ -259,15 +289,38 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
   }
 
-  String _getOtherParticipantImage() {
+  // Get other participant's ID
+  String _getOtherParticipantId() {
     final participants = List<String>.from(
       widget.chatData['participants'] ?? [],
     );
-    final otherParticipantId = participants.firstWhere(
+    return participants.firstWhere(
       (id) => id != _auth.currentUser?.uid,
       orElse: () => 'unknown',
     );
+  }
 
+  // Fetch profile image from users collection
+  Future<String> _fetchProfileImage(String userId) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        if (userData != null && userData['profileImageUrl'] != null) {
+          return userData['profileImageUrl'];
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching profile image: $e');
+    }
+    return 'https://i.pinimg.com/1200x/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg';
+  }
+
+  // This method is kept for backward compatibility
+  String _getOtherParticipantImage() {
+    final otherParticipantId = _getOtherParticipantId();
+    
+    // Fallback to old method if needed
     final participantImages =
         widget.chatData['participantImages'] as Map<String, dynamic>? ?? {};
     return participantImages[otherParticipantId] ??
@@ -295,11 +348,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         titleSpacing: 0,
         title: Row(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundImage: CachedNetworkImageProvider(
-                _getOtherParticipantImage(),
-              ),
+            FutureBuilder<String>(
+              future: _fetchProfileImage(_getOtherParticipantId()),
+              builder: (context, snapshot) {
+                final profileImageUrl = snapshot.data ?? _getOtherParticipantImage();
+                return CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[300],
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: ImageUtils.base64ToImage(
+                        profileImageUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 8),
             Expanded(

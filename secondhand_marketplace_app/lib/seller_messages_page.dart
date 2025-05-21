@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'constants.dart';
-import 'admin_chat_detail_page.dart';
+import 'seller_chat_detail_page.dart';
 import 'services/chat_service.dart';
 import 'services/notification_service.dart';
+import 'utils/image_utils.dart';
+import 'utils/page_transitions.dart';
 import 'seller_listing_page.dart';
 import 'seller_reviews_page.dart';
 import 'seller_wallet_page.dart';
 import 'seller_profile_page.dart';
-import 'utils/page_transitions.dart';
-
 
 class SellerMessagesPage extends StatefulWidget {
   const SellerMessagesPage({super.key});
@@ -114,7 +113,8 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
       context,
       MaterialPageRoute(
         builder:
-            (context) => ChatDetailPage(chatId: chatDoc.id, chatData: chatData),
+            (context) =>
+                SellerChatDetailPage(chatId: chatDoc.id, chatData: chatData),
       ),
     ).then((_) {
       // Unsubscribe from notifications when returning from chat detail
@@ -185,7 +185,6 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
     }
   }
 
-    // Handle bottom navigation
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
 
@@ -208,12 +207,12 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
           DarkPageReplaceRoute(page: const SellerWalletPage()),
         );
         break;
-      case 3: // Navigate to Profile
+      case 3: // Already on Messages page, just update index
         setState(() {
           _selectedIndex = index;
         });
         break;
-      case 4: // Navigate to Messages
+      case 4: // Navigate to Profile
         Navigator.pushReplacement(
           context,
           DarkPageReplaceRoute(page: const SellerProfilePage()),
@@ -336,15 +335,6 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
                           participantNames[otherParticipantId] ??
                           'Unknown User';
 
-                      // Get profile image URL
-                      final participantImages =
-                          chatData['participantImages']
-                              as Map<String, dynamic>? ??
-                          {};
-                      final profileImageUrl =
-                          participantImages[otherParticipantId] ??
-                          'https://i.pinimg.com/1200x/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg';
-
                       // Get unread count for current user
                       final unreadCountMap = Map<String, dynamic>.from(
                         chatData['unreadCount'] ?? {},
@@ -357,143 +347,193 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
                           chatData['lastMessageTimestamp'] as Timestamp?;
                       final dateTime = timestamp?.toDate() ?? DateTime.now();
 
-                      return Dismissible(
-                        key: Key(chatDoc.id),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(Icons.delete, color: Colors.white),
-                        ),
-                        direction: DismissDirection.endToStart,
-                        confirmDismiss: (direction) async {
-                          return await showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                backgroundColor: AppColors.deepSlateGray,
-                                title: Text(
-                                  'Delete Chat',
-                                  style: TextStyle(color: AppColors.coolGray),
-                                ),
-                                content: Text(
-                                  'Are you sure you want to delete this chat?',
-                                  style: TextStyle(color: AppColors.coolGray),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(context).pop(false),
-                                    child: Text(
-                                      'Cancel',
+                      // Using StreamBuilder to fetch profile image from users collection
+                      return StreamBuilder<DocumentSnapshot>(
+                        stream:
+                            FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(otherParticipantId)
+                                .snapshots(),
+                        builder: (context, userSnapshot) {
+                          // Default profile image URL
+                          String profileImageUrl =
+                              'https://i.pinimg.com/1200x/2c/47/d5/2c47d5dd5b532f83bb55c4cd6f5bd1ef.jpg';
+
+                          // If user data exists and has a profile image, use it
+                          if (userSnapshot.hasData &&
+                              userSnapshot.data != null) {
+                            final userData =
+                                userSnapshot.data!.data()
+                                    as Map<String, dynamic>?;
+                            if (userData != null &&
+                                userData['profileImageUrl'] != null) {
+                              profileImageUrl = userData['profileImageUrl'];
+                            }
+                          }
+
+                          return Dismissible(
+                            key: Key(chatDoc.id),
+                            background: Container(
+                              color: Colors.red,
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                              ),
+                            ),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (direction) async {
+                              return await showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    backgroundColor: AppColors.deepSlateGray,
+                                    title: Text(
+                                      'Delete Chat',
                                       style: TextStyle(
-                                        color: AppColors.mutedTeal,
+                                        color: AppColors.coolGray,
+                                      ),
+                                    ),
+                                    content: Text(
+                                      'Are you sure you want to delete this chat?',
+                                      style: TextStyle(
+                                        color: AppColors.coolGray,
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.of(
+                                              context,
+                                            ).pop(false),
+                                        child: Text(
+                                          'Cancel',
+                                          style: TextStyle(
+                                            color: AppColors.mutedTeal,
+                                          ),
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop(true);
+                                          deleteChat(chatDoc.id);
+                                        },
+                                        child: const Text(
+                                          'Delete',
+                                          style: TextStyle(
+                                            color: Colors.redAccent,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                            child: ListTile(
+                              leading: Stack(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Colors.grey[300],
+                                    child: ClipOval(
+                                      child: SizedBox(
+                                        width: 48,
+                                        height: 48,
+                                        child: ImageUtils.base64ToImage(
+                                          profileImageUrl,
+                                          fit: BoxFit.cover,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop(true);
-                                      deleteChat(chatDoc.id);
-                                    },
-                                    child: const Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.redAccent),
+                                  if (unreadCount > 0)
+                                    Positioned(
+                                      right: 0,
+                                      top: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.mutedTeal,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          '$unreadCount',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              title: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      otherParticipantName,
+                                      style: TextStyle(
+                                        fontWeight:
+                                            unreadCount > 0
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                        color: AppColors.coolGray,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatTimestamp(dateTime),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          unreadCount > 0
+                                              ? AppColors.mutedTeal
+                                              : AppColors.coolGray.withAlpha(
+                                                150,
+                                              ),
                                     ),
                                   ),
                                 ],
-                              );
-                            },
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    chatData['lastMessage'] ?? '',
+                                    style: TextStyle(
+                                      color:
+                                          unreadCount > 0
+                                              ? AppColors.coolGray
+                                              : AppColors.coolGray.withAlpha(
+                                                150,
+                                              ),
+                                      fontWeight:
+                                          unreadCount > 0
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                              onTap: () => _navigateToChatDetail(chatDoc),
+                            ),
                           );
                         },
-                        child: ListTile(
-                          leading: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundImage: CachedNetworkImageProvider(
-                                  profileImageUrl,
-                                ),
-                              ),
-                              if (unreadCount > 0)
-                                Positioned(
-                                  right: 0,
-                                  top: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.mutedTeal,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      '$unreadCount',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  otherParticipantName,
-                                  style: TextStyle(
-                                    fontWeight:
-                                        unreadCount > 0
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                    color: AppColors.coolGray,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Text(
-                                _formatTimestamp(dateTime),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color:
-                                      unreadCount > 0
-                                          ? AppColors.mutedTeal
-                                          : AppColors.coolGray.withAlpha(150),
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                chatData['lastMessage'] ?? '',
-                                style: TextStyle(
-                                  color:
-                                      unreadCount > 0
-                                          ? AppColors.coolGray
-                                          : AppColors.coolGray.withAlpha(150),
-                                  fontWeight:
-                                      unreadCount > 0
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                          onTap: () => _navigateToChatDetail(chatDoc),
-                        ),
                       );
                     },
                   );
                 },
               ),
-                    bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
