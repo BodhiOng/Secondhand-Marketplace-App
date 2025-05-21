@@ -298,14 +298,6 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Text(
-                            'Start a conversation by messaging a seller',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.coolGray.withAlpha(150),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
                         ],
                       ),
                     );
@@ -417,7 +409,7 @@ class _SellerMessagesPageState extends State<SellerMessagesPage> {
                                       TextButton(
                                         onPressed: () {
                                           Navigator.of(context).pop(true);
-                                          deleteChat(chatDoc.id);
+                                          performChatDeletion(chatDoc.id);
                                         },
                                         child: const Text(
                                           'Delete',

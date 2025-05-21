@@ -373,7 +373,7 @@ class _MessagesPageState extends State<MessagesPage> {
                                       TextButton(
                                         onPressed: () {
                                           Navigator.of(context).pop(true);
-                                          deleteChat(chatDoc.id);
+                                          performChatDeletion(chatDoc.id);
                                         },
                                         child: const Text(
                                           'Delete',

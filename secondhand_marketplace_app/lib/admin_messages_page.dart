@@ -256,7 +256,7 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Start a conversation by messaging a seller',
+                            'Start a conversation by messaging a user',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.coolGray.withAlpha(150),
@@ -374,7 +374,7 @@ class _AdminMessagesPageState extends State<AdminMessagesPage> {
                                       TextButton(
                                         onPressed: () {
                                           Navigator.of(context).pop(true);
-                                          deleteChat(chatDoc.id);
+                                          performChatDeletion(chatDoc.id);
                                         },
                                         child: const Text(
                                           'Delete',
