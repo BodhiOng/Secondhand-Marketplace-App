@@ -1,10 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:image_picker/image_picker.dart';
+
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:io';
+
 import 'constants.dart';
 import 'services/chat_service.dart';
 
@@ -25,7 +27,7 @@ class ChatDetailPage extends StatefulWidget {
 class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final ImagePicker _imagePicker = ImagePicker();
+
 
   // Services
   final ChatService _chatService = ChatService();
@@ -36,7 +38,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   // Loading state
   bool _isLoading = false;
-  bool _isSendingImage = false;
+
 
   @override
   void initState() {
@@ -104,42 +106,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
-  Future<void> _pickAndSendImage() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 70,
-      );
 
-      if (image == null) return;
-
-      setState(() {
-        _isSendingImage = true;
-      });
-
-      // Convert XFile to File
-      final File imageFile = File(image.path);
-
-      // Upload and send the image
-      await _chatService.sendImageMessage(widget.chatId, imageFile);
-
-      // Scroll to bottom after sending
-      Future.delayed(const Duration(milliseconds: 300), () {
-        _scrollToBottom();
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error sending image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        _isSendingImage = false;
-      });
-    }
-  }
 
   String _formatTime(DateTime timestamp) {
     return DateFormat('h:mm a').format(timestamp);
@@ -583,11 +550,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
             color: AppColors.deepSlateGray,
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.add_photo_alternate),
-                  color: AppColors.mutedTeal,
-                  onPressed: _isSendingImage ? null : _pickAndSendImage,
-                ),
+
                 Expanded(
                   child: TextField(
                     controller: _messageController,
