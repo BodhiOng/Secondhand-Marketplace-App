@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:secondhand_marketplace_app/utils/image_utils.dart';
 import 'dart:io';
 import 'constants.dart';
 import 'utils/image_converter.dart';
@@ -159,7 +160,7 @@ class _RateReviewPageState extends State<RateReviewPage> {
                       borderRadius: BorderRadius.circular(8),
                       child:
                           widget.order.product?.imageUrl != null
-                              ? Image.network(
+                              ? ImageUtils.base64ToImage(
                                 widget.order.product!.imageUrl,
                                 width: 80,
                                 height: 80,

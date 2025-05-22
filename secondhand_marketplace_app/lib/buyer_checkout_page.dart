@@ -3,9 +3,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'constants.dart';
-import 'models/cart_item.dart';
-import 'buyer_order_confirmation_page.dart';
+import 'package:secondhand_marketplace_app/constants.dart';
+import 'package:secondhand_marketplace_app/models/cart_item.dart';
+import 'package:secondhand_marketplace_app/buyer_order_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> cartItems;
@@ -22,9 +22,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  bool _isEditMode = false;
   late List<CartItem> _cartItems;
-  bool _isLoading = false;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -32,7 +30,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     _cartItems = List.from(widget.cartItems);
-    // Save cart items to local storage whenever they are loaded
     _saveCartItemsToLocalStorage();
   }
   
@@ -42,7 +39,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final prefs = await SharedPreferences.getInstance();
       final userId = _auth.currentUser?.uid ?? 'guest';
       
-      // Convert cart items to JSON
       final List<Map<String, dynamic>> cartItemsJson = _cartItems.map((item) {
         return {
           'productId': item.product.id,
@@ -57,7 +53,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         };
       }).toList();
       
-      // Save to shared preferences
       await prefs.setString('cart_$userId', jsonEncode(cartItemsJson));
       debugPrint('Cart saved to local storage: ${_cartItems.length} items');
     } catch (e) {
@@ -81,36 +76,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return _cartItems.fold(0, (total, item) => total + item.totalPrice);
   }
 
-  // Toggle edit mode
-  void _toggleEditMode() {
-    setState(() {
-      _isEditMode = !_isEditMode;
-      // Reset all selections when exiting edit mode
-      if (!_isEditMode) {
-        for (var item in _cartItems) {
-          item.isSelected = false;
-        }
-      }
-    });
-  }
-
-  // Delete selected items
-  void _deleteSelectedItems() {
-    setState(() {
-      _cartItems.removeWhere((item) => item.isSelected);
-      _saveCartItemsToLocalStorage();
-    });
-  }
-
   // Update quantity of an item
   void _updateQuantity(int index, int change) {
     setState(() {
       int newQuantity = _cartItems[index].quantity + change;
-      // Check if new quantity is valid (greater than 0 and not exceeding stock)
       if (newQuantity > 0) {
-        // Check if we're increasing quantity and if it exceeds available stock
         if (change > 0 && newQuantity > _cartItems[index].product.stock) {
-          // Show error message if trying to add more than available stock
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Cannot add more. Only ${_cartItems[index].product.stock} items in stock.'),
@@ -119,12 +90,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
           );
           return;
         }
-        
-        // Update quantity if it's valid
         _cartItems[index].quantity = newQuantity;
         _saveCartItemsToLocalStorage();
       } else {
-        // Show confirmation dialog before removing item
         _showRemoveItemDialog(index);
       }
     });
@@ -134,7 +102,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void _showRemoveItemDialog(int index) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: AppColors.deepSlateGray,
         title: Text(
           'Remove Item',
@@ -143,7 +111,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         content: Text(
           'Are you sure you want to remove ${_cartItems[index].product.name} from your cart?',
           style: TextStyle(color: AppColors.coolGray),
-          overflow: TextOverflow.visible,
         ),
         actions: [
           TextButton(
@@ -173,19 +140,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   // Proceed to checkout
   void _proceedToCheckout() async {
-    setState(() {
-      _isLoading = true;
-    });
-    
     try {
       final userId = _auth.currentUser?.uid;
       if (userId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('You need to be logged in to checkout')),
-        );
-        setState(() {
-          _isLoading = false;
-        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You need to be logged in to checkout')),
+          );
+        }
         return;
       }
       
@@ -197,9 +159,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             const SnackBar(content: Text('User profile not found')),
           );
         }
-        setState(() {
-          _isLoading = false;
-        });
         return;
       }
       
@@ -216,9 +175,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           );
         }
-        setState(() {
-          _isLoading = false;
-        });
         return;
       }
       
@@ -320,84 +276,87 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         );
       }
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() {});
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.charcoalBlack,
       appBar: AppBar(
+        title: const Text('Checkout'),
         backgroundColor: AppColors.deepSlateGray,
-        title: Text(
-          'Shopping Cart',
-          style: TextStyle(color: AppColors.coolGray),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.coolGray),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _toggleEditMode,
-            child: Text(
-              _isEditMode ? 'Cancel' : 'Edit',
-              style: TextStyle(color: AppColors.mutedTeal),
-            ),
-          ),
-        ],
+        foregroundColor: Colors.white,
       ),
-      body: _cartItems.isEmpty
-          ? _buildEmptyCart()
-          : _buildCartItemsList(),
-      bottomNavigationBar: _buildBottomBar(),
-    );
-  }
-
-  // Empty cart view
-  Widget _buildEmptyCart() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
         children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: AppColors.coolGray.withAlpha(150),
+          // Cart items list
+          Expanded(
+            child: _buildCartItemsList(),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Your cart is empty',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.coolGray,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add items to get started',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.coolGray.withAlpha(180),
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mutedTeal,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          // Checkout summary
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.deepSlateGray,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  spreadRadius: 1,
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              border: Border.all(
+                width: 1,
               ),
             ),
-            child: const Text(
-              'Continue Shopping',
-              style: TextStyle(color: Colors.white),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total:',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.coolGray,
+                      ),
+                    ),
+                    Text(
+                      'RM ${_totalPrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.mutedTeal,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _cartItems.isEmpty ? null : _proceedToCheckout,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mutedTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: Text(
+                    'Proceed to Payment',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -405,280 +364,117 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // Cart items list
+  // Build the list of cart items
   Widget _buildCartItemsList() {
+    if (_cartItems.isEmpty) {
+      return const Center(
+        child: Text('Your cart is empty'),
+      );
+    }
+
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
       itemCount: _cartItems.length,
       itemBuilder: (context, index) {
         final item = _cartItems[index];
         return Card(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           color: AppColors.deepSlateGray,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: item.isSelected
-                  ? AppColors.mutedTeal
-                  : Colors.transparent,
-              width: 2,
-            ),
-          ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Selection checkbox (only in edit mode)
-                if (_isEditMode)
-                  Checkbox(
-                    value: item.isSelected,
-                    onChanged: (value) {
-                      setState(() {
-                        item.isSelected = value ?? false;
-                      });
-                    },
-                    fillColor: WidgetStateProperty.resolveWith<Color>(
-                      (Set<WidgetState> states) {
-                        if (states.contains(WidgetState.selected)) {
-                          return AppColors.mutedTeal;
-                        }
-                        return AppColors.coolGray.withAlpha(100);
-                      },
+                // First row: Image, name, and condition
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Product image
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(
+                        base64Decode(item.product.imageUrl.split(',').last),
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 80,
+                          height: 80,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.image_not_supported),
+                        ),
+                      ),
                     ),
-                  ),
-                // Product image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    item.product.imageUrl,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Product details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.product.name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Condition: ${item.product.condition}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.coolGray,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    const SizedBox(width: 12),
+                    // Product name and condition
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'RM ${item.product.price.toStringAsFixed(2)}',
-                            style: TextStyle(
+                            item.product.name,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.softLemonYellow,
+                              color: AppColors.coolGray,
                             ),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          // Quantity controls
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.remove_circle_outline),
-                                color: AppColors.coolGray,
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _updateQuantity(index, -1),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 8),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.charcoalBlack,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${item.quantity}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_circle_outline),
-                                color: AppColors.coolGray,
-                                iconSize: 20,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _updateQuantity(index, 1),
-                              ),
-                            ],
+                          const SizedBox(height: 4),
+                          Text(
+                            'Condition: ${item.product.condition}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.coolGray.withValues(alpha: 0.8),
+                            ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Second row: Price and quantity controls
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Price
+                    Text(
+                      'RM ${item.totalPrice.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.mutedTeal,
+                      ),
+                    ),
+                    // Quantity controls
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.remove_circle_outline, color: AppColors.mutedTeal),
+                          onPressed: () => _updateQuantity(index, -1),
+                        ),
+                        Text(
+                          item.quantity.toString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: AppColors.coolGray,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.add_circle_outline, color: AppColors.mutedTeal),
+                          onPressed: () => _updateQuantity(index, 1),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  // Bottom bar with total and checkout/edit buttons
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.deepSlateGray,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(100),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _isEditMode
-                ? _buildEditModeBottomBar()
-                : _buildCheckoutBottomBar(),
-      ),
-    );
-  }
-
-  // Bottom bar in normal mode (total + checkout button)
-  Widget _buildCheckoutBottomBar() {
-    return Row(
-      children: [
-        // Total price
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Total',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.coolGray,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                'RM ${_totalPrice.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-        // Checkout button
-        ElevatedButton(
-          onPressed: _cartItems.isEmpty ? null : _proceedToCheckout,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.mutedTeal,
-            disabledBackgroundColor: AppColors.mutedTeal.withAlpha(100),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Checkout',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Bottom bar in edit mode (delete + done buttons)
-  Widget _buildEditModeBottomBar() {
-    // Count selected items
-    final selectedCount = _cartItems.where((item) => item.isSelected).length;
-    final hasSelection = selectedCount > 0;
-
-    return Row(
-      children: [
-        // Selected count
-        Expanded(
-          child: Text(
-            hasSelection
-                ? '$selectedCount ${selectedCount == 1 ? 'item' : 'items'} selected'
-                : 'Select items to edit',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppColors.coolGray,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        // Delete button
-        ElevatedButton(
-          onPressed: hasSelection ? _deleteSelectedItems : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.warmCoral,
-            disabledBackgroundColor: AppColors.warmCoral.withAlpha(100),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Delete',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Done button
-        ElevatedButton(
-          onPressed: _toggleEditMode,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.mutedTeal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          child: const Text(
-            'Done',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'constants.dart';
@@ -26,7 +27,6 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
   List<Map<String, dynamic>> _reviews = [];
   bool _isLoading = true;
 
-
   @override
   void initState() {
     super.initState();
@@ -38,39 +38,43 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
       setState(() {
         _isLoading = true;
       });
-      
+
       // Query reviews collection for this product
-      final QuerySnapshot reviewsSnapshot = await _firestore
-          .collection('reviews')
-          .where('productId', isEqualTo: widget.product.id)
-          .orderBy('date', descending: true) // Most recent reviews first
-          .get();
-      
+      final QuerySnapshot reviewsSnapshot =
+          await _firestore
+              .collection('reviews')
+              .where('productId', isEqualTo: widget.product.id)
+              .orderBy('date', descending: true) // Most recent reviews first
+              .get();
+
       if (reviewsSnapshot.docs.isNotEmpty) {
         final List<Map<String, dynamic>> fetchedReviews = [];
-        
+
         for (var doc in reviewsSnapshot.docs) {
           final reviewData = doc.data() as Map<String, dynamic>;
-          
+
           // Fetch reviewer information
           final String reviewerId = reviewData['reviewerId'] ?? '';
           String username = 'Anonymous';
-          String profileImageUrl = 'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
-          
+          String profileImageUrl =
+              'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
+
           if (reviewerId.isNotEmpty) {
             try {
-              final userDoc = await _firestore.collection('users').doc(reviewerId).get();
+              final userDoc =
+                  await _firestore.collection('users').doc(reviewerId).get();
               if (userDoc.exists) {
                 final userData = userDoc.data() as Map<String, dynamic>;
                 username = userData['username'] ?? 'User';
-                profileImageUrl = userData['profileImageUrl'] ?? 
+                profileImageUrl =
+                    userData['profileImageUrl'] ??
                     'https://i.pinimg.com/736x/07/c4/72/07c4720d19a9e9edad9d0e939eca304a.jpg';
               }
             } catch (e) {
               debugPrint('Error fetching reviewer info: $e');
             }
           }
-          
+
           // Format the review date
           String formattedDate = 'Recently';
           if (reviewData['date'] != null) {
@@ -78,7 +82,7 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
             final reviewDate = timestamp.toDate();
             final now = DateTime.now();
             final difference = now.difference(reviewDate);
-            
+
             if (difference.inDays < 1) {
               formattedDate = 'Today';
             } else if (difference.inDays < 2) {
@@ -93,7 +97,7 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
               formattedDate = '${(difference.inDays / 365).floor()} years ago';
             }
           }
-          
+
           // Add review to the list
           fetchedReviews.add({
             'id': reviewData['id'] ?? '',
@@ -105,7 +109,7 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
             'image': reviewData['imageUrl'],
           });
         }
-        
+
         setState(() {
           _reviews = fetchedReviews;
           _isLoading = false;
@@ -125,8 +129,6 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
     }
   }
 
-
-
   Widget _buildRatingStars(double rating) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -134,12 +136,46 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
         return Icon(
           index < rating.floor()
               ? Icons.star
-              : (index < rating) ? Icons.star_half : Icons.star_border,
+              : (index < rating)
+              ? Icons.star_half
+              : Icons.star_border,
           color: AppColors.warmCoral,
           size: 16,
         );
       }),
     );
+  }
+
+  ImageProvider? _getProfileImage(String? imageData) {
+    if (imageData == null || imageData.isEmpty) return null;
+    
+    try {
+      // Handle data URLs (starts with 'data:image/')
+      if (imageData.startsWith('data:image/')) {
+        // Extract the base64 part after the comma
+        final base64String = imageData.split(',').last;
+        final bytes = base64Decode(base64String);
+        return MemoryImage(bytes);
+      }
+      
+      // Handle raw base64 strings
+      try {
+        final bytes = base64Decode(imageData);
+        return MemoryImage(bytes);
+      } catch (e) {
+        // Not a valid base64 string, try other formats
+      }
+      
+      // Handle network images
+      if (imageData.startsWith('http')) {
+        return NetworkImage(imageData);
+      }
+      
+      return null;
+    } catch (e) {
+      debugPrint('Error loading profile image: $e');
+      return null;
+    }
   }
 
   Widget _buildReviewItem(Map<String, dynamic> review) {
@@ -158,7 +194,13 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
                 // Reviewer Profile Pic
                 CircleAvatar(
                   radius: 20,
-                  backgroundImage: NetworkImage(review['profilePic']),
+                  backgroundImage: _getProfileImage(review['profilePic']),
+                  onBackgroundImageError: (exception, stackTrace) {
+                    // Handle image loading error if needed
+                  },
+                  child: review['profilePic'] == null || review['profilePic'].toString().isEmpty
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
                 ),
                 const SizedBox(width: 12),
 
@@ -201,7 +243,10 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
                 const SizedBox(width: 8),
                 Text(
                   '${review['rating'].toStringAsFixed(1)}',
-                  style: TextStyle(color: AppColors.coolGray, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppColors.coolGray,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -209,47 +254,60 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
 
             // Review Text
             Text(
-              review['text'], 
-              style: TextStyle(color: AppColors.coolGray, fontSize: 15, height: 1.4),
+              review['text'],
+              style: TextStyle(
+                color: AppColors.coolGray,
+                fontSize: 15,
+                height: 1.4,
+              ),
             ),
 
             // Review Image (if any)
-            if (review['image'] != null && review['image'].toString().isNotEmpty) ...[  
+            if (review['image'] != null &&
+                review['image'].toString().isNotEmpty) ...[
               const SizedBox(height: 12),
               GestureDetector(
                 onTap: () {
                   showDialog(
                     context: context,
-                    builder: (context) => Dialog.fullscreen(
-                      backgroundColor: Colors.black87,
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: InteractiveViewer(
-                              minScale: 0.5,
-                              maxScale: 4.0,
-                              child: ImageUtils.isBase64Image(review['image'])
-                                  ? Image.memory(
-                                      ImageConverter.base64ToBytes(review['image']),
-                                      fit: BoxFit.contain,
-                                    )
-                                  : Image.network(
-                                      review['image'],
-                                      fit: BoxFit.contain,
-                                    ),
-                            ),
+                    builder:
+                        (context) => Dialog.fullscreen(
+                          backgroundColor: Colors.black87,
+                          child: Stack(
+                            children: [
+                              Center(
+                                child: InteractiveViewer(
+                                  minScale: 0.5,
+                                  maxScale: 4.0,
+                                  child:
+                                      ImageUtils.isBase64Image(review['image'])
+                                          ? Image.memory(
+                                            ImageConverter.base64ToBytes(
+                                              review['image'],
+                                            ),
+                                            fit: BoxFit.contain,
+                                          )
+                                          : Image.network(
+                                            review['image'],
+                                            fit: BoxFit.contain,
+                                          ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 40,
+                                right: 20,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 30,
+                                  ),
+                                  onPressed: () => Navigator.of(context).pop(),
+                                ),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            top: 40,
-                            right: 20,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
                   );
                 },
                 child: Container(
@@ -337,32 +395,33 @@ class _ProductReviewsPageState extends State<ProductReviewsPage> {
               ],
             ),
           ),
-          
+
           // Reviews List
           Expanded(
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.mutedTeal,
-                    ),
-                  )
-                : _reviews.isEmpty
+            child:
+                _isLoading
                     ? Center(
-                        child: Text(
-                          'No reviews yet',
-                          style: TextStyle(
-                            color: AppColors.coolGray,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _reviews.length,
-                        itemBuilder: (context, index) {
-                          return _buildReviewItem(_reviews[index]);
-                        },
+                      child: CircularProgressIndicator(
+                        color: AppColors.mutedTeal,
                       ),
+                    )
+                    : _reviews.isEmpty
+                    ? Center(
+                      child: Text(
+                        'No reviews yet',
+                        style: TextStyle(
+                          color: AppColors.coolGray,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _reviews.length,
+                      itemBuilder: (context, index) {
+                        return _buildReviewItem(_reviews[index]);
+                      },
+                    ),
           ),
         ],
       ),

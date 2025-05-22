@@ -256,7 +256,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
 
   // Submit bargain and proceed to checkout
   void _submitBargain() async {
-    // Show loading indicator
+    // Hide the bargain sheet
     setState(() {
       _showBargainSheet = false;
     });
@@ -275,30 +275,39 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
     }
 
     try {
-      // Create a bargain message
-      final String bargainMessage =
-          'I would like to offer \$${_bargainPrice.toStringAsFixed(2)} for this item.';
+      // Create a product with the bargained price
+      final bargainedProduct = Product(
+        id: widget.product.id,
+        name: widget.product.name,
+        description: widget.product.description,
+        price: _bargainPrice, // Use the bargained price
+        imageUrl: widget.product.imageUrl,
+        category: widget.product.category,
+        sellerId: widget.product.sellerId,
+        seller: widget.product.seller,
+        rating: widget.product.rating,
+        condition: widget.product.condition,
+        listedDate: widget.product.listedDate,
+        stock: widget.product.stock,
+        adBoost: widget.product.adBoost,
+        minBargainPrice: widget.product.minBargainPrice,
+      );
 
-      // Show success message
+      // Create a cart item with the bargained product
+      final cartItem = CartItem(
+        product: bargainedProduct,
+      );
+
+      // Navigate to checkout page with the bargained item
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Your offer of \$${_bargainPrice.toStringAsFixed(2)} has been sent to the seller!',
-              style: const TextStyle(color: Colors.white),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CheckoutPage(
+              cartItems: [cartItem],
+              isBargainPurchase: true,
             ),
-            backgroundColor: AppColors.mutedTeal,
-            duration: const Duration(seconds: 3),
           ),
-        );
-      }
-
-      // Create chat and navigate
-      if (mounted) {
-        _createChatAndNavigate(
-          widget.product.sellerId,
-          widget.product.id,
-          initialMessage: bargainMessage,
         );
       }
     } catch (e) {
@@ -879,7 +888,7 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                             77,
                           ),
                         ),
-                        child: const Text('Send Bargain Request'),
+                        child: const Text('Bargain'),
                       ),
                     ),
                     const SizedBox(height: 16),
