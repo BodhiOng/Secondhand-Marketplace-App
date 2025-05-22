@@ -284,7 +284,7 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
         await welcomeMessageRef.set({
           'id': welcomeMessageRef.id,
           'senderId': adminId,
-          'text': 'Hello, this is Help Center. How may I assist you?',
+          'text': 'Hello, this is Help Center. How may I assist you? [This message is system-generated]',
           'timestamp': FieldValue.serverTimestamp(),
           'isRead': false,
           'imageUrl': null,

@@ -448,7 +448,11 @@ class _SellerListingPageState extends State<SellerListingPage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.star, color: AppColors.charcoalBlack, size: 12),
+                        Icon(
+                          Icons.star,
+                          color: AppColors.charcoalBlack,
+                          size: 12,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           'Boosted ${product.adBoost.toStringAsFixed(0)}',
@@ -560,10 +564,11 @@ class _SellerListingPageState extends State<SellerListingPage> {
                         final result = await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => EditProductPage(product: product),
+                            builder:
+                                (context) => EditProductPage(product: product),
                           ),
                         );
-                        
+
                         // Refresh products if a product was updated
                         if (result == true) {
                           _fetchSellerProducts();

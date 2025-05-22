@@ -1,12 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:secondhand_marketplace_app/seller_messages_page.dart';
+import 'package:secondhand_marketplace_app/utils/image_utils.dart';
+
 import 'constants.dart';
 import 'seller_listing_page.dart';
-import 'seller_wallet_page.dart';
+import 'seller_messages_page.dart';
 import 'seller_profile_page.dart';
+import 'seller_wallet_page.dart';
 import 'utils/page_transitions.dart';
 
 class SellerReviewsPage extends StatefulWidget {
@@ -394,26 +399,132 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                       Row(
                                         children: [
                                           // Buyer avatar
-                                          CircleAvatar(
-                                            radius: 20,
-                                            backgroundColor: AppColors.mutedTeal
-                                                .withValues(alpha: 51),
-                                            backgroundImage:
-                                                review['buyerPhotoUrl']
-                                                        .isNotEmpty
-                                                    ? NetworkImage(
-                                                      review['buyerPhotoUrl']
-                                                          as String,
-                                                    )
-                                                    : null,
-                                            child:
-                                                review['buyerPhotoUrl'].isEmpty
-                                                    ? const Icon(
+                                          Builder(
+                                            builder: (context) {
+                                              try {
+                                                final photoUrl =
+                                                    review['buyerPhotoUrl']
+                                                        as String?;
+                                                if (photoUrl == null ||
+                                                    photoUrl.isEmpty) {
+                                                  return CircleAvatar(
+                                                    radius: 20,
+                                                    backgroundColor: AppColors
+                                                        .mutedTeal
+                                                        .withValues(alpha: 0.2),
+                                                    child: Icon(
                                                       Icons.person,
                                                       color:
                                                           AppColors.mutedTeal,
-                                                    )
-                                                    : null,
+                                                    ),
+                                                  );
+                                                }
+
+                                                // Handle data URLs (starts with 'data:image/')
+                                                if (photoUrl.startsWith(
+                                                  'data:image/',
+                                                )) {
+                                                  try {
+                                                    final base64String =
+                                                        photoUrl
+                                                            .split(',')
+                                                            .last;
+                                                    final bytes = base64Decode(
+                                                      base64String,
+                                                    );
+                                                    return CircleAvatar(
+                                                      radius: 20,
+                                                      backgroundColor: AppColors
+                                                          .mutedTeal
+                                                          .withValues(
+                                                            alpha: 0.2,
+                                                          ),
+                                                      child: ClipOval(
+                                                        child: Image.memory(
+                                                          bytes,
+                                                          width: 40,
+                                                          height: 40,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (
+                                                                _,
+                                                                __,
+                                                                ___,
+                                                              ) => Icon(
+                                                                Icons.person,
+                                                                color:
+                                                                    AppColors
+                                                                        .mutedTeal,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  } catch (e) {
+                                                    debugPrint(
+                                                      'Error decoding base64 image: $e',
+                                                    );
+                                                    // Fall through to default icon
+                                                  }
+                                                }
+
+                                                // Handle network images
+                                                if (photoUrl.startsWith(
+                                                  'http',
+                                                )) {
+                                                  return CircleAvatar(
+                                                    radius: 20,
+                                                    backgroundColor: AppColors
+                                                        .mutedTeal
+                                                        .withValues(alpha: 0.2),
+                                                    child: ClipOval(
+                                                      child: Image.network(
+                                                        photoUrl,
+                                                        width: 40,
+                                                        height: 40,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (
+                                                              _,
+                                                              __,
+                                                              ___,
+                                                            ) => Icon(
+                                                              Icons.person,
+                                                              color:
+                                                                  AppColors
+                                                                      .mutedTeal,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+
+                                                // Fallback to default icon
+                                                return CircleAvatar(
+                                                  radius: 20,
+                                                  backgroundColor: AppColors
+                                                      .mutedTeal
+                                                      .withValues(alpha: 0.2),
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    color: AppColors.mutedTeal,
+                                                  ),
+                                                );
+                                              } catch (e) {
+                                                debugPrint(
+                                                  'Error loading buyer photo: $e',
+                                                );
+                                                return CircleAvatar(
+                                                  radius: 20,
+                                                  backgroundColor: AppColors
+                                                      .mutedTeal
+                                                      .withValues(alpha: 0.2),
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    color: AppColors.mutedTeal,
+                                                  ),
+                                                );
+                                              }
+                                            },
                                           ),
                                           const SizedBox(width: 12),
                                           // Buyer name and date
@@ -505,56 +616,30 @@ class _SellerReviewsPageState extends State<SellerReviewsPage> {
                                           children: [
                                             // Product image
                                             ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(6),
+                                              borderRadius: BorderRadius.circular(6),
                                               child: SizedBox(
                                                 width: 48,
                                                 height: 48,
-                                                child:
-                                                    review['productImageUrl']
-                                                            .isNotEmpty
-                                                        ? Image.network(
-                                                          review['productImageUrl']
-                                                              as String,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder: (
-                                                            context,
-                                                            error,
-                                                            stackTrace,
-                                                          ) {
-                                                            return Container(
-                                                              color:
-                                                                  AppColors
-                                                                      .deepSlateGray,
-                                                              child: Icon(
-                                                                Icons
-                                                                    .image_not_supported,
-                                                                color: AppColors
-                                                                    .coolGray
-                                                                    .withValues(
-                                                                      alpha:
-                                                                          150,
-                                                                    ),
-                                                                size: 24,
-                                                              ),
-                                                            );
-                                                          },
-                                                        )
-                                                        : Container(
-                                                          color:
-                                                              AppColors
-                                                                  .deepSlateGray,
-                                                          child: Icon(
-                                                            Icons
-                                                                .image_not_supported,
-                                                            color: AppColors
-                                                                .coolGray
-                                                                .withValues(
-                                                                  alpha: 150,
-                                                                ),
-                                                            size: 24,
+                                                child: review['productImageUrl'].isNotEmpty
+                                                    ? ImageUtils.base64ToImage(
+                                                        review['productImageUrl'] as String,
+                                                        fit: BoxFit.cover,
+                                                        errorWidget: Container(
+                                                          color: AppColors.deepSlateGray,
+                                                          child: const Icon(
+                                                            Icons.image_not_supported,
+                                                            color: Colors.white,
                                                           ),
                                                         ),
+                                                      )
+                                                    : Container(
+                                                        color: AppColors.deepSlateGray,
+                                                        child: Icon(
+                                                          Icons.image_not_supported,
+                                                          color: AppColors.coolGray.withValues(alpha: 150),
+                                                          size: 24,
+                                                        ),
+                                                      ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),

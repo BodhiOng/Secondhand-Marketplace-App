@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:secondhand_marketplace_app/utils/image_utils.dart';
 import 'constants.dart';
 import 'models/product.dart';
 
@@ -164,7 +165,7 @@ class _ReportItemPageState extends State<ReportItemPage> {
                       // Product Image
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
+                        child: ImageUtils.base64ToImage(
                           widget.product.imageUrl,
                           width: 80,
                           height: 80,
