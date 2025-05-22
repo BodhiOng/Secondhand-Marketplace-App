@@ -276,22 +276,6 @@ class _SellerListingPageState extends State<SellerListingPage> {
                       style: TextStyle(color: AppColors.coolGray),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to add product page
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Add product functionality coming soon',
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.mutedTeal,
-                      ),
-                      child: const Text('Add Product'),
-                    ),
                   ],
                 ),
               )
