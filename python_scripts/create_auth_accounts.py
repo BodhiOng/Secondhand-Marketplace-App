@@ -10,7 +10,7 @@ def initialize_firebase():
     try:
         # Path to your Firebase service account key file
         # You need to download this from Firebase Console > Project Settings > Service Accounts
-        cred_path = os.path.join(os.path.dirname(__file__), 'secondhand-marketplace-app-firebase-adminsdk-fbsvc-f931bb1829.json')
+        cred_path = os.path.join(os.path.dirname(__file__), 'secondhand-marketplace-app-firebase-adminsdk-fbsvc-8c45231694.json')
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
         return True

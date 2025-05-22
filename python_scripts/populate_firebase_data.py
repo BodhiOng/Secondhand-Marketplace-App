@@ -20,7 +20,7 @@ def initialize_firebase():
     """Initialize Firebase Admin SDK with service account credentials."""
     # Check if the credentials file exists
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    cred_path = os.path.join(script_dir, "secondhand-marketplace-app-firebase-adminsdk-fbsvc-f931bb1829.json")
+    cred_path = os.path.join(script_dir, "secondhand-marketplace-app-firebase-adminsdk-fbsvc-8c45231694.json")
     print(f"Looking for Firebase credentials at: {cred_path}")
     
     if not os.path.exists(cred_path):
