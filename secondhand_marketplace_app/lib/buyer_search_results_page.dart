@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:secondhand_marketplace_app/utils/image_utils.dart';
 import 'constants.dart';
 import 'buyer_product_details_page.dart';
 import 'models/product.dart';
@@ -40,87 +41,6 @@ class SearchResultsPageState extends State<SearchResultsPage> {
     'Poor',
   ];
 
-  // For when Firebase is not available
-  final List<Product> _sampleProducts = [
-    Product(
-      id: '1',
-      name: 'iPhone 13 Pro',
-      description:
-          'Slightly used iPhone 13 Pro, 256GB storage, Pacific Blue color.',
-      price: 699.99,
-      imageUrl: 'https://picsum.photos/id/1/200/200',
-      category: 'Electronics',
-      sellerId: 'seller_1',
-      seller: 'TechGuru',
-      rating: 4.8,
-      condition: 'Like New',
-      listedDate: DateTime.now().subtract(const Duration(days: 5)),
-      stock: 2,
-      adBoost: 120.0,
-    ),
-    Product(
-      id: '2',
-      name: 'Sony WH-1000XM4 Headphones',
-      description:
-          'Noise cancelling headphones, black color, with original box and accessories.',
-      price: 249.99,
-      imageUrl: 'https://picsum.photos/id/2/200/200',
-      category: 'Electronics',
-      sellerId: 'seller_2',
-      seller: 'AudioPhile',
-      rating: 4.9,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 10)),
-      stock: 5,
-      adBoost: 50.0,
-    ),
-    Product(
-      id: '3',
-      name: 'MacBook Pro 2021',
-      description: 'M1 Pro chip, 16GB RAM, 512GB SSD, Space Gray, barely used.',
-      price: 1599.99,
-      imageUrl: 'https://picsum.photos/id/3/200/200',
-      category: 'Electronics',
-      sellerId: 'seller_3',
-      seller: 'AppleFan',
-      rating: 4.7,
-      condition: 'Like New',
-      listedDate: DateTime.now().subtract(const Duration(days: 3)),
-      stock: 1,
-      adBoost: 200.0,
-    ),
-    Product(
-      id: '4',
-      name: 'Samsung Galaxy S21',
-      description: '128GB, Phantom Black, with case and screen protector.',
-      price: 499.99,
-      imageUrl: 'https://picsum.photos/id/4/200/200',
-      category: 'Electronics',
-      sellerId: 'seller_4',
-      seller: 'MobileDeals',
-      rating: 4.5,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 15)),
-      stock: 3,
-      adBoost: 80.0,
-    ),
-    Product(
-      id: '5',
-      name: 'iPad Air 4th Gen',
-      description: '64GB, Sky Blue, with Apple Pencil 2nd Gen.',
-      price: 449.99,
-      imageUrl: 'https://picsum.photos/id/5/200/200',
-      category: 'Electronics',
-      sellerId: 'seller_5',
-      seller: 'TabletPro',
-      rating: 4.6,
-      condition: 'Good',
-      listedDate: DateTime.now().subtract(const Duration(days: 7)),
-      stock: 2,
-      adBoost: 100.0,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -135,8 +55,6 @@ class SearchResultsPageState extends State<SearchResultsPage> {
       setState(() {
         _isFirebaseAvailable = false;
         _isLoading = false;
-        // If Firebase is not available, use sample data
-        _searchResults = _filterSampleProducts();
       });
     }
   }
@@ -147,23 +65,11 @@ class SearchResultsPageState extends State<SearchResultsPage> {
     super.dispose();
   }
 
-  // Filter sample products based on search query
-  List<Product> _filterSampleProducts() {
-    final String query = _searchController.text.toLowerCase();
-    return _sampleProducts.where((product) {
-      return product.name.toLowerCase().contains(query) ||
-          product.description.toLowerCase().contains(query) ||
-          product.category.toLowerCase().contains(query);
-    }).toList();
-  }
-
   // Perform search using Firestore
   Future<void> _performSearch() async {
     if (!_isFirebaseAvailable || _firestore == null) {
       setState(() {
         _isLoading = false;
-        // If Firebase is not available, use sample data
-        _searchResults = _filterSampleProducts();
       });
       return;
     }
@@ -215,8 +121,6 @@ class SearchResultsPageState extends State<SearchResultsPage> {
       debugPrint('Error searching products: $e');
       setState(() {
         _isLoading = false;
-        // If there's an error, use sample data
-        _searchResults = _filterSampleProducts();
       });
     }
   }
@@ -480,7 +384,7 @@ class SearchResultsPageState extends State<SearchResultsPage> {
                                   // Product image
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
+                                    child: ImageUtils.base64ToImage(
                                       product.imageUrl,
                                       width: 80,
                                       height: 80,

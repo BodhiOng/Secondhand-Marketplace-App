@@ -12,6 +12,7 @@ import 'buyer_featured_items_page.dart';
 import 'buyer_recent_items_page.dart';
 import 'models/product.dart';
 import 'utils/page_transitions.dart';
+import 'utils/image_utils.dart';
 
 // Homepage for the secondhand marketplace app
 class MyHomePage extends StatefulWidget {
@@ -422,26 +423,20 @@ class _MyHomePageState extends State<MyHomePage> {
                                             topLeft: Radius.circular(12),
                                             topRight: Radius.circular(12),
                                           ),
-                                          child: Image.network(
+                                          child: ImageUtils.base64ToImage(
                                             product.imageUrl,
                                             height: 120,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              return Container(
-                                                height: 120,
-                                                width: double.infinity,
-                                                color: Colors.grey[800],
-                                                child: const Icon(
-                                                  Icons.image_not_supported,
-                                                  color: Colors.white,
-                                                ),
-                                              );
-                                            },
+                                            errorWidget: Container(
+                                              height: 120,
+                                              width: double.infinity,
+                                              color: Colors.grey[800],
+                                              child: const Icon(
+                                                Icons.image_not_supported,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                         // Ad boost badge
@@ -639,22 +634,20 @@ class _MyHomePageState extends State<MyHomePage> {
                                   topLeft: Radius.circular(12),
                                   bottomLeft: Radius.circular(12),
                                 ),
-                                child: Image.network(
+                                child: ImageUtils.base64ToImage(
                                   product.imageUrl,
                                   height: 100,
                                   width: 100,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      height: 100,
-                                      width: 100,
-                                      color: Colors.grey[800],
-                                      child: const Icon(
-                                        Icons.image_not_supported,
-                                        color: Colors.white,
-                                      ),
-                                    );
-                                  },
+                                  errorWidget: Container(
+                                    height: 100,
+                                    width: 100,
+                                    color: Colors.grey[800],
+                                    child: const Icon(
+                                      Icons.image_not_supported,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                               Expanded(

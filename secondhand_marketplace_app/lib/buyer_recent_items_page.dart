@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:secondhand_marketplace_app/utils/image_utils.dart';
 import 'constants.dart';
 import 'buyer_product_details_page.dart';
 import 'models/product.dart';
@@ -51,8 +52,6 @@ class RecentItemsPageState extends State<RecentItemsPage> {
       setState(() {
         _isFirebaseAvailable = false;
         _isLoading = false;
-        // If Firebase is not available, use sample data
-        _recentProducts = _getSampleProducts();
       });
     }
   }
@@ -68,8 +67,6 @@ class RecentItemsPageState extends State<RecentItemsPage> {
     if (!_isFirebaseAvailable || _firestore == null) {
       setState(() {
         _isLoading = false;
-        // If Firebase is not available, use sample data
-        _recentProducts = _getSampleProducts();
       });
       return;
     }
@@ -110,8 +107,6 @@ class RecentItemsPageState extends State<RecentItemsPage> {
       debugPrint('Error fetching recent products: $e');
       setState(() {
         _isLoading = false;
-        // If there's an error, use sample data
-        _recentProducts = _getSampleProducts();
       });
     }
   }
@@ -142,89 +137,6 @@ class RecentItemsPageState extends State<RecentItemsPage> {
       debugPrint('Error fetching ratings for product ${product.id}: $e');
       // Keep the default rating from the product document if there's an error
     }
-  }
-
-  // Sample products for when Firebase is not available
-  List<Product> _getSampleProducts() {
-    return [
-      Product(
-        id: '5',
-        name: 'iPad Air 4th Gen',
-        description: '64GB, Sky Blue, with Apple Pencil 2nd Gen.',
-        price: 449.99,
-        imageUrl: 'https://picsum.photos/id/5/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_5',
-        seller: 'TabletPro',
-        rating: 4.6,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 1)),
-        stock: 2,
-        adBoost: 100.0,
-      ),
-      Product(
-        id: '6',
-        name: 'Vintage Leather Jacket',
-        description: 'Genuine leather jacket, size M, brown color.',
-        price: 199.99,
-        imageUrl: 'https://picsum.photos/id/20/200/200',
-        category: 'Clothing',
-        sellerId: 'seller_6',
-        seller: 'VintageFashion',
-        rating: 4.6,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 2)),
-        stock: 1,
-        adBoost: 30.0,
-      ),
-      Product(
-        id: '7',
-        name: 'Mechanical Keyboard',
-        description: 'RGB mechanical keyboard with Cherry MX Blue switches.',
-        price: 129.99,
-        imageUrl: 'https://picsum.photos/id/60/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_7',
-        seller: 'PCGamer',
-        rating: 4.7,
-        condition: 'Like New',
-        listedDate: DateTime.now().subtract(const Duration(days: 3)),
-        stock: 3,
-        adBoost: 40.0,
-      ),
-      Product(
-        id: '8',
-        name: 'Antique Wooden Chair',
-        description:
-            'Handcrafted wooden chair from the 1950s, excellent condition.',
-        price: 349.99,
-        imageUrl: 'https://picsum.photos/id/30/200/200',
-        category: 'Furniture',
-        sellerId: 'seller_8',
-        seller: 'AntiqueCollector',
-        rating: 4.9,
-        condition: 'Good',
-        listedDate: DateTime.now().subtract(const Duration(days: 4)),
-        stock: 1,
-        adBoost: 60.0,
-      ),
-      Product(
-        id: '9',
-        name: 'Fitness Smartwatch',
-        description:
-            'Waterproof fitness tracker with heart rate monitor and GPS.',
-        price: 179.99,
-        imageUrl: 'https://picsum.photos/id/40/200/200',
-        category: 'Electronics',
-        sellerId: 'seller_9',
-        seller: 'FitGadgets',
-        rating: 4.5,
-        condition: 'New',
-        listedDate: DateTime.now().subtract(const Duration(days: 5)),
-        stock: 4,
-        adBoost: 70.0,
-      ),
-    ];
   }
 
   // Filter the products based on selected filters
@@ -458,7 +370,7 @@ class RecentItemsPageState extends State<RecentItemsPage> {
                                   // Product image
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
+                                    child: ImageUtils.base64ToImage(
                                       product.imageUrl,
                                       width: 80,
                                       height: 80,

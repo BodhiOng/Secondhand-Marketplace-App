@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'constants.dart';
@@ -435,8 +436,10 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                 // Product Image
                 AspectRatio(
                   aspectRatio: 1,
-                  child: Image.network(
+                  child: ImageUtils.base64ToImage(
                     widget.product.imageUrl,
+                    width: double.infinity,
+                    height: double.infinity,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -517,9 +520,11 @@ class ProductDetailsPageState extends State<ProductDetailsPage> {
                                         // Seller Profile Pic
                                         CircleAvatar(
                                           radius: 30,
-                                          backgroundImage: NetworkImage(
-                                            _seller['profileImageUrl'],
-                                          ),
+                                          backgroundImage: _seller['profileImageUrl'] != null && _seller['profileImageUrl'].isNotEmpty
+                                              ? MemoryImage(ImageUtils.isBase64Image(_seller['profileImageUrl'])
+                                                  ? ImageUtils.decodeBase64Image(_seller['profileImageUrl'])
+                                                  : Uint8List(0))
+                                              : const AssetImage('assets/images/default_profile.png') as ImageProvider,
                                         ),
                                         const SizedBox(width: 16),
 
