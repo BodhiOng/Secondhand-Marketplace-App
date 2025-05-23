@@ -357,7 +357,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
         'email': email,
         'subject': subject,
         'message': message,
-        'status': 'pending',
+        'status': 'Pending',
         'createdAt': currentTimestamp,
         'userRole': 'buyer',
       });

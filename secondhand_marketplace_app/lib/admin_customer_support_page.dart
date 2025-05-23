@@ -366,16 +366,6 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
         ),
         child: Stack(
           children: [
-            // Close button (X) in top-right corner
-            Positioned(
-              top: 16,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.coolGray),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            
             // Main content
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -385,25 +375,29 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
                 children: [
                   const SizedBox(height: 8),
                   // Title with status
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          request['subject'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
-                      ),
-                      _buildStatusBadge(request['status']),
-                    ],
+                  // Title row
+                  Text(
+                    request['subject'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                   
-                  const SizedBox(height: 16),
+                  // Status row with some top margin
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                      child: _buildStatusBadge(request['status']),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 8),
                   
                   // Request details
+                  // User details section
                   _detailRow('From', request['username']),
                   _detailRow('Email', request['email']),
                   _detailRow('User Role', request['userRole']),
@@ -420,19 +414,24 @@ class _AdminCustomerSupportPageState extends State<AdminCustomerSupportPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.deepSlateGray.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8.0),
-                      border: Border.all(
-                        color: AppColors.coolGray.withValues(alpha: 0.3),
+                  SizedBox(
+                    height: 150, // Fixed height for the message container
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepSlateGray.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(
+                          color: AppColors.coolGray.withValues(alpha: 0.3),
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      request['message'],
-                      style: const TextStyle(color: Colors.white),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          request['message'],
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
                     ),
                   ),
 

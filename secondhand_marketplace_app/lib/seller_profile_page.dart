@@ -332,7 +332,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
         'email': _emailController.text,
         'subject': _helpSubjectController.text,
         'message': _helpMessageController.text,
-        'status': 'pending',
+        'status': 'Pending',
         'createdAt': FieldValue.serverTimestamp(),
         'userRole': 'seller',
       });
